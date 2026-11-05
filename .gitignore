@@ -1,0 +1,7 @@
+/data/
+/dist/
+/worktrees/
+node_modules/
+go.work
+go.work.sum
+.env
