@@ -113,7 +113,7 @@ publishing it. Automatic archives contain `folkweave.db` in their compressed
 archive; unpack an archive privately and use that file with `restore`.
 
 Members can download their own posts, photographs, and replies as a ZIP archive
-from **You**. Credentials and other members' posts are excluded.
+from **Account**. Credentials and other members' posts are excluded.
 
 ## Containers
 
@@ -150,7 +150,7 @@ invitation redemption under concurrency, injected transaction failures, stable
 pagination during writes, media boundaries and orientation, snapshot/restore,
 JavaScript/no-JavaScript flows, composer lifecycle, and mutations of key guards.
 
-[Architecture](docs/architecture.md) · [HTTP API](docs/api.md)
+[Architecture](docs/architecture.md) · [HTTP API](docs/api.md) · [Mascot](docs/mascot.md)
 
 ## License
 

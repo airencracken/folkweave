@@ -37,6 +37,30 @@ async function signIn(page) {
   await page.waitForURL(origin + '/');
 }
 
+test('mascot and plain account controls work on desktop and mobile', async () => {
+  for (const width of [320, 1280]) for (const colorScheme of ['light', 'dark']) {
+    const context = await browser.newContext({ viewport: { width, height: 1000 }, colorScheme });
+    const page = await context.newPage();
+    await page.goto(origin + '/login');
+    const mascot = page.getByRole('img', { name: 'Folkweave’s loom mascot', exact: true });
+    assert.equal(await mascot.evaluate(img => img.complete && img.naturalWidth === 256), true);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.screenshot({ path: root + `dist/screenshots/login-${width}-${colorScheme}.png`, fullPage: true });
+    await signIn(page);
+    await page.getByRole('link', { name: 'Account', exact: true }).click();
+    await page.getByRole('heading', { name: 'Account', exact: true }).waitFor();
+    await page.getByRole('heading', { name: 'Export your data', exact: true }).waitFor();
+    await page.getByRole('link', { name: 'Settings', exact: true }).click();
+    await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor();
+    await page.getByRole('heading', { name: 'Backups', exact: true }).waitFor();
+    assert.equal(await page.getByLabel('Group name', { exact: true }).inputValue(), 'The Sunday Folks');
+    assert.equal(await page.locator('.brand img').evaluate(img => img.complete && img.naturalWidth === 256), true);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.screenshot({ path: root + `dist/screenshots/settings-${width}-${colorScheme}.png`, fullPage: true });
+    await context.close();
+  }
+});
+
 for (const javascript of [true, false]) for (const width of [320, 390, 768, 1280]) {
   test(`timeline, photo post, reply, and bookmark: JS=${javascript}, width=${width}`, async () => {
     const context = await browser.newContext({ javaScriptEnabled: javascript, viewport: { width, height: 960 }, colorScheme: width === 390 || width === 1280 ? 'dark' : 'light' });
@@ -116,7 +140,7 @@ test('invitation joins the private gathering without exposing owner controls', a
   await join.getByLabel('Your name', { exact: true }).fill('Avery');
   await join.getByLabel('Username', { exact: true }).fill('avery');
   await join.getByLabel('Choose a password', { exact: true }).fill('a-private-long-password');
-  await join.getByRole('button', { name: 'Join this gathering', exact: true }).click();
+  await join.getByRole('button', { name: 'Create account', exact: true }).click();
   await join.waitForURL(origin + '/'); assert.equal(await join.getByRole('link', { name: 'Invite someone', exact: true }).count(), 0);
   assert.equal((await join.goto(origin + '/invitations')).status(), 403);
   await owner.close(); await guest.close();

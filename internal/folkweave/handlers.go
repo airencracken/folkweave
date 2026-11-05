@@ -16,10 +16,10 @@ import (
 )
 
 func (a *App) loginForm(w http.ResponseWriter, r *http.Request) {
-	a.render(w, r, 200, Page{View: "login", Title: "Welcome back"})
+	a.render(w, r, 200, Page{View: "login", Title: "Sign in"})
 }
 func (a *App) joinForm(w http.ResponseWriter, r *http.Request) {
-	a.render(w, r, 200, Page{View: "join", Title: "Make yourself at home", Invite: r.URL.Query().Get("invite")})
+	a.render(w, r, 200, Page{View: "join", Title: "Join the group", Invite: r.URL.Query().Get("invite")})
 }
 func (a *App) login(w http.ResponseWriter, r *http.Request) {
 	if !a.authAllowed(w, r) {
@@ -37,7 +37,7 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 	}
 	match := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	if err != nil || match != nil || len(password) > 72 || u.Disabled {
-		a.render(w, r, 422, Page{View: "login", Title: "Welcome back", Username: username, Error: "That username and password did not match."})
+		a.render(w, r, 422, Page{View: "login", Title: "Sign in", Username: username, Error: "That username and password did not match."})
 		return
 	}
 	a.signIn(w, r, u.ID)
@@ -50,7 +50,7 @@ func (a *App) join(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimSpace(r.PostForm.Get("name"))
 	password := r.PostForm.Get("password")
 	secret := r.PostForm.Get("invite")
-	p := Page{View: "join", Title: "Make yourself at home", Username: username, Name: name, Invite: secret}
+	p := Page{View: "join", Title: "Join the group", Username: username, Name: name, Invite: secret}
 	err := ValidateCredentials(username, password)
 	if err == nil && (name == "" || !validText(name, 80, false)) {
 		err = errors.New("choose a display name up to 80 characters")
@@ -234,7 +234,7 @@ func (a *App) post(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, r, err)
 		return
 	}
-	a.render(w, r, 200, Page{View: "post", Title: "A little conversation", Post: post})
+	a.render(w, r, 200, Page{View: "post", Title: "Replies", Post: post})
 }
 func (a *App) reply(w http.ResponseWriter, r *http.Request) {
 	id, err := routeID(r)
@@ -254,7 +254,7 @@ func (a *App) reply(w http.ResponseWriter, r *http.Request) {
 					a.fail(w, r, e)
 					return
 				}
-				a.render(w, r, 422, Page{View: "post", Title: "A little conversation", Post: p, Body: body, Error: "Write a reply up to 5,000 characters.", Submission: r.PostForm.Get("submission")})
+				a.render(w, r, 422, Page{View: "post", Title: "Replies", Post: p, Body: body, Error: "Write a reply up to 5,000 characters.", Submission: r.PostForm.Get("submission")})
 			}
 		} else {
 			a.fail(w, r, err)
@@ -393,7 +393,7 @@ func (a *App) people(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, r, err)
 		return
 	}
-	a.render(w, r, 200, Page{View: "people", Title: "Your people", People: people})
+	a.render(w, r, 200, Page{View: "people", Title: "People", People: people})
 }
 func (a *App) person(w http.ResponseWriter, r *http.Request) {
 	id, err := routeID(r)
@@ -448,7 +448,7 @@ func (a *App) invitations(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, r, err)
 		return
 	}
-	a.render(w, r, 200, Page{View: "invitations", Title: "Make room for your people", Invitations: items})
+	a.render(w, r, 200, Page{View: "invitations", Title: "Invitations", Invitations: items})
 }
 func (a *App) invite(w http.ResponseWriter, r *http.Request) {
 	uses, err := strconv.Atoi(r.PostForm.Get("uses"))
@@ -466,7 +466,7 @@ func (a *App) invite(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, r, err)
 		return
 	}
-	a.render(w, r, 201, Page{View: "invitations", Title: "An invitation to your gathering", Invitations: items, InviteURL: a.base.String() + "/join?invite=" + secret})
+	a.render(w, r, 201, Page{View: "invitations", Title: "Invitations", Invitations: items, InviteURL: a.base.String() + "/join?invite=" + secret})
 }
 func (a *App) revokeInvite(w http.ResponseWriter, r *http.Request) {
 	id, err := routeID(r)
@@ -481,7 +481,7 @@ func (a *App) revokeInvite(w http.ResponseWriter, r *http.Request) {
 	a.redirect(w, r, "/invitations")
 }
 func (a *App) settings(w http.ResponseWriter, r *http.Request) {
-	a.render(w, r, 200, Page{View: "settings", Title: "Look after this place", Backup: a.Backups.Status()})
+	a.render(w, r, 200, Page{View: "settings", Title: "Settings", Backup: a.Backups.Status()})
 }
 func (a *App) configure(w http.ResponseWriter, r *http.Request) {
 	if err := a.store.Configure(r.Context(), state(r).User.ID, r.PostForm.Get("title"), r.PostForm.Get("about")); err != nil {

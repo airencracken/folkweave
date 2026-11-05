@@ -26,7 +26,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-//go:embed templates/*.html static/*.css static/app.js static/*.svg static/*.min.js static/*.LICENSE static/vendor.json
+//go:embed templates/*.html static/*.css static/app.js static/*.svg static/loom.webp static/favicon-32.png static/*.min.js static/*.LICENSE static/vendor.json
 var assets embed.FS
 
 type Config struct {

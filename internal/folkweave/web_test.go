@@ -136,6 +136,40 @@ func TestRoutesPrivacyAndSecurityHeaders(t *testing.T) {
 	}
 }
 
+func TestAccountAndSettingsNavigation(t *testing.T) {
+	s, _, c := webFixture(t)
+	c.signIn(t, "owner")
+	for _, page := range []struct{ path, heading string }{
+		{"/settings", "Settings"}, {"/account", "Account"}, {"/invitations", "Invitations"},
+	} {
+		w := c.request("GET", page.path, nil, nil)
+		if w.Code != 200 || !strings.Contains(w.Body.String(), "<h1>"+page.heading+"</h1>") {
+			t.Fatalf("missing clear page heading on %s: %d", page.path, w.Code)
+		}
+		for _, control := range []string{`href="/account"`, `>Account</a>`, `href="/settings">Settings</a>`, `href="/account/export">Export your data</a>`} {
+			if !strings.Contains(w.Body.String(), control) {
+				t.Fatal("missing navigation control", page.path, control)
+			}
+		}
+	}
+	w := c.form(t, "/settings", url.Values{"title": {"Our group"}, "about": {"Keep shared photos private."}}, false)
+	if w.Code != 303 {
+		t.Fatal("settings save failed", w.Code, w.Body.String())
+	}
+	settings, err := s.Settings(testContext)
+	if err != nil || settings.Title != "Our group" || settings.About != "Keep shared photos private." {
+		t.Fatal("settings were not saved", settings, err)
+	}
+	for _, asset := range []struct{ path, contentType string }{
+		{"/static/loom.webp", "image/webp"}, {"/static/favicon-32.png", "image/png"},
+	} {
+		w := c.request("GET", asset.path, nil, nil)
+		if w.Code != 200 || w.Header().Get("Content-Type") != asset.contentType {
+			t.Fatal("mascot asset not served correctly", asset.path, w.Code, w.Header())
+		}
+	}
+}
+
 func TestCSRFOriginAndMethodBoundaries(t *testing.T) {
 	_, _, c := webFixture(t)
 	c.signIn(t, "owner")
