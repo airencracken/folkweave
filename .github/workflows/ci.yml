@@ -1,0 +1,32 @@
+name: Check Folkweave
+on:
+  push:
+    branches: [master]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: scripts/browser/package-lock.json
+      - run: make check test-race test-mutations
+      - run: npm ci --prefix scripts/browser
+      - run: cd scripts/browser && npx playwright install --with-deps chromium
+      - run: make test-browser
+      - run: make test-container
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-screenshots
+          path: dist/screenshots

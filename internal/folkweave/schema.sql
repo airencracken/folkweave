@@ -1,0 +1,51 @@
+CREATE TABLE IF NOT EXISTS schema_version(version INTEGER PRIMARY KEY CHECK(version=1));
+INSERT OR IGNORE INTO schema_version VALUES(1);
+CREATE TABLE IF NOT EXISTS settings(id INTEGER PRIMARY KEY CHECK(id=1), title TEXT NOT NULL, about TEXT NOT NULL DEFAULT '');
+CREATE TABLE IF NOT EXISTS users(
+ id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+ password_hash TEXT NOT NULL, name TEXT NOT NULL, bio TEXT NOT NULL DEFAULT '',
+ role TEXT NOT NULL CHECK(role IN ('owner','member')), disabled INTEGER NOT NULL DEFAULT 0 CHECK(disabled IN (0,1)),
+ created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS invitations(
+ id INTEGER PRIMARY KEY AUTOINCREMENT, token_hash TEXT NOT NULL UNIQUE,
+ creator_id INTEGER NOT NULL REFERENCES users(id), expires_at INTEGER NOT NULL,
+ max_uses INTEGER NOT NULL CHECK(max_uses BETWEEN 1 AND 50),
+ uses INTEGER NOT NULL DEFAULT 0 CHECK(uses>=0 AND uses<=max_uses),
+ revoked INTEGER NOT NULL DEFAULT 0 CHECK(revoked IN (0,1))
+);
+CREATE TABLE IF NOT EXISTS sessions(
+ token_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ expires_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS posts(
+ id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id),
+ body TEXT NOT NULL, created_at INTEGER NOT NULL, edited_at INTEGER,
+ revision INTEGER NOT NULL DEFAULT 1 CHECK(revision>0),
+ submission_key TEXT NOT NULL, fingerprint TEXT NOT NULL,
+ UNIQUE(user_id,submission_key)
+);
+CREATE TABLE IF NOT EXISTS photos(
+ id TEXT PRIMARY KEY, post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+ position INTEGER NOT NULL CHECK(position BETWEEN 0 AND 3), alt TEXT NOT NULL,
+ data BLOB NOT NULL, width INTEGER NOT NULL CHECK(width>0), height INTEGER NOT NULL CHECK(height>0),
+ UNIQUE(post_id,position)
+);
+CREATE TABLE IF NOT EXISTS replies(
+ id INTEGER PRIMARY KEY AUTOINCREMENT, post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+ user_id INTEGER NOT NULL REFERENCES users(id), body TEXT NOT NULL, created_at INTEGER NOT NULL,
+ submission_key TEXT NOT NULL, fingerprint TEXT NOT NULL, UNIQUE(user_id,submission_key)
+);
+CREATE TABLE IF NOT EXISTS saved(
+ user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+ PRIMARY KEY(user_id,post_id)
+);
+CREATE TABLE IF NOT EXISTS receipts(
+ user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ kind TEXT NOT NULL CHECK(kind IN ('post','reply')), submission_key TEXT NOT NULL,
+ PRIMARY KEY(user_id,kind,submission_key)
+);
+CREATE INDEX IF NOT EXISTS posts_author ON posts(user_id,id DESC);
+CREATE INDEX IF NOT EXISTS replies_post ON replies(post_id,id);
+CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions(expires_at);

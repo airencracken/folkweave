@@ -1,0 +1,18 @@
+[
+  {
+    "package": "@alpinejs/csp",
+    "version": "3.17.5",
+    "license": "MIT",
+    "source": "https://registry.npmjs.org/@alpinejs/csp/-/csp-3.17.5.tgz",
+    "sha256": "48c170c92032e527cbae71b8ce75cf1f96ca06fa869a6120ef0fe438d8e92c36",
+    "file": "alpine-csp.min.js"
+  },
+  {
+    "package": "htmx.org",
+    "version": "2.0.11",
+    "license": "0BSD",
+    "source": "https://registry.npmjs.org/htmx.org/-/htmx.org-2.0.11.tgz",
+    "sha256": "d6fdc75f204e6bdefa99b69bf1e6d4ac69b8a364f77929f45c13476b4000f717",
+    "file": "htmx.min.js"
+  }
+]

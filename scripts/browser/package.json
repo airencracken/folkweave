@@ -1,0 +1,7 @@
+{
+  "name": "folkweave-browser-checks",
+  "private": true,
+  "type": "module",
+  "scripts": {"test": "node --test browser.test.mjs"},
+  "devDependencies": {"playwright": "1.63.0"}
+}

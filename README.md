@@ -1,3 +1,158 @@
 # Folkweave
 
-A private timeline for your people.
+A private timeline for your people. A thought, a photograph, a bit of your day.
+
+Folkweave is a small, self-hosted Comfyware app for friends, family, or another
+group who choose each other. Each installation has its own accounts and
+invite-only membership. Everyone in the gathering can see its earlier posts.
+
+This is the first development pass, version `0.1.0-dev`.
+
+## Try it
+
+Build with Go 1.26 or newer:
+
+```sh
+make build
+./dist/folkweave demo
+```
+
+Open <http://127.0.0.1:8084>. Sign in as `demo` with the password
+`folkweave-demo-only`. The demo contains fictional people and locally generated
+sample illustrations. It uses a temporary data directory that is removed on
+shutdown and only binds to a loopback address.
+
+## Start your own gathering
+
+```sh
+./dist/folkweave init --data ./data --username owner --name "Your name" --title "Our people"
+./dist/folkweave serve --data ./data
+```
+
+The initializer prompts for and confirms a password with terminal echo disabled.
+Automation can supply one line through stdin using `--password-stdin`. Passwords
+need at least 12 Unicode characters and at most 72 UTF-8 bytes. Passwords are
+hashed with bcrypt; session and invitation secrets are stored only as digests.
+
+For HTTPS behind a reverse proxy:
+
+```sh
+./dist/folkweave serve --data ./data --listen 127.0.0.1:8084 \
+  --base-url https://folkweave.example.org --trusted-proxies 127.0.0.1/32,::1/128
+```
+
+Use the actual external origin for `--base-url`. This controls accepted host
+headers, invitation links, and secure cookies. Only trust proxy networks you
+control. The Caddy example is in [packaging/Caddyfile](packaging/Caddyfile).
+The data directory must be private, mode `0700`; its database must be `0600`.
+
+## What is here
+
+- Invite-only accounts, expiring invitations, and owner-managed membership.
+- A chronological timeline, stable cursor pagination, and an explicit new-post button.
+- Short or long plain-text posts, clickable web links, and up to four photos.
+- Inline photo previews, descriptions, ordering, and draft protection with Alpine.
+- Replies that refresh immediately, retry-safe submissions, and private bookmarks.
+- Author edits, confirmed deletion, and owner removal of posts and replies.
+- Member profiles, sign-out, and host-assisted password recovery.
+- Private photo routes, account exports, verified snapshots, and automatic backups.
+- Ordinary forms and navigation that work with JavaScript disabled.
+- Light and dark themes, keyboard controls, and layouts checked at 320–1280 pixels.
+
+Shared photos are normalized to JPEG, oriented using JPEG EXIF, resized to at
+most 1920 pixels on either side, and stripped of metadata. JPEG/PNG inputs are
+limited to 5 MiB and 20 megapixels each. **Original uploads are not retained.**
+Keep original photographs separately; Imvault remains the home for collections.
+
+The first pass has one installation-wide audience. Managed child accounts and
+reviewed child feeds are later work; this build does not provide parental
+approval controls. [Product notes](docs/product.md) describe the intended scope.
+
+## Accounts and recovery
+
+Owners create invitations under **Invite someone**. Links expire after seven
+days, can admit 1–50 people, and are shown only once. An invited member sees
+the gathering's earlier posts and photos. Owners can close invitations and
+suspend or restore membership under **People**.
+
+To reset a member's password, run as the account that owns the data directory:
+
+```sh
+./dist/folkweave set-password --data ./data --username member
+```
+
+This prompts for a new password and revokes that member's existing sessions.
+
+## Backups and exports
+
+The database contains the posts, replies, accounts, and normalized photographs.
+The running service uses comfylib to create a verified automatic snapshot daily.
+The first automatic attempt is about one minute after startup. The owner page
+shows backup status. Keep protected copies on another machine as well.
+
+| Environment variable | Default |
+| --- | --- |
+| `FOLKWEAVE_DATA_DIR` | `./data` |
+| `FOLKWEAVE_LISTEN` | `127.0.0.1:8084` |
+| `FOLKWEAVE_BASE_URL` | Listen origin |
+| `FOLKWEAVE_TRUSTED_PROXIES` | None |
+| `FOLKWEAVE_BACKUP_INTERVAL` | `24h`; `0` disables |
+| `FOLKWEAVE_BACKUP_KEEP` | `7` |
+| `FOLKWEAVE_BACKUP_MAX_BYTES` | `10737418240` |
+| `FOLKWEAVE_BACKUP_COPY_MAX_BYTES` | `5368709120` |
+
+A manual snapshot uses a fresh directory and includes an integrity check:
+
+```sh
+./dist/folkweave backup --data ./data --output ./snapshot
+./dist/folkweave restore --from ./snapshot/folkweave.db --data ./restored-data
+```
+
+Restore refuses an existing target and verifies the copied database before
+publishing it. Automatic archives contain `folkweave.db` in their compressed
+archive; unpack an archive privately and use that file with `restore`.
+
+Members can download their own posts, photographs, and replies as a ZIP archive
+from **You**. Credentials and other members' posts are excluded.
+
+## Containers
+
+Build the development image from the local Linux binary:
+
+```sh
+make image
+docker compose run --rm folkweave init --data /data --username owner
+docker compose up -d
+```
+
+Visit <http://localhost:8084>. Set `FOLKWEAVE_BASE_URL` to the actual HTTPS
+origin before sharing an installation online. The image runs as UID/GID 65532;
+the example uses a named volume, a read-only root filesystem, and a private
+temporary directory. This first pass does not publish container images or
+distribution packages.
+
+## Development and checks
+
+```sh
+make check
+make test-race
+make test-mutations
+npm ci --prefix scripts/browser
+make test-browser
+```
+
+Browser checks use `/usr/bin/chromium` when present. Set `CHROMIUM` to another
+executable, or install the pinned Playwright browser with
+`cd scripts/browser && npx playwright install chromium`.
+
+Tests cover route existence and methods, API contracts, cookie/CSRF policy,
+invitation redemption under concurrency, injected transaction failures, stable
+pagination during writes, media boundaries and orientation, snapshot/restore,
+JavaScript/no-JavaScript flows, composer lifecycle, and mutations of key guards.
+
+[Architecture](docs/architecture.md) · [HTTP API](docs/api.md)
+
+## License
+
+AGPL-3.0-or-later. See [LICENSE](LICENSE). Embedded HTMX and Alpine releases,
+licenses, sources, and checksums are recorded in [THIRD_PARTY.md](THIRD_PARTY.md).

@@ -1,0 +1,122 @@
+[
+  {
+    "name": "revoked invitations cannot be redeemed",
+    "file": "internal/folkweave/store.go",
+    "before": "AND revoked=0 AND expires_at>?",
+    "after": "AND revoked IN (0,1) AND expires_at>?",
+    "package": "./internal/folkweave",
+    "run": "^TestRevokedInvitationAndMemberPermissions$"
+  },
+  {
+    "name": "expired invitations cannot be redeemed",
+    "file": "internal/folkweave/store.go",
+    "before": "AND expires_at>? AND uses<max_uses",
+    "after": "AND expires_at>?-9999999999999 AND uses<max_uses",
+    "package": "./internal/folkweave",
+    "run": "^TestInvitationRedemptionAtomicAndConcurrent$"
+  },
+  {
+    "name": "invitation use limit is enforced",
+    "file": "internal/folkweave/store.go",
+    "before": "AND uses<max_uses",
+    "after": "AND uses<=max_uses",
+    "package": "./internal/folkweave",
+    "run": "^TestInvitationRedemptionAtomicAndConcurrent$"
+  },
+  {
+    "name": "expired sessions are rejected",
+    "file": "internal/folkweave/store.go",
+    "before": "AND s.expires_at>? AND u.disabled=0",
+    "after": "AND s.expires_at>?-9999999999999 AND u.disabled=0",
+    "package": "./internal/folkweave",
+    "run": "^TestSchemaConstraintsAndSecrets$"
+  },
+  {
+    "name": "member cannot gain owner permissions",
+    "file": "internal/folkweave/store.go",
+    "before": "(owner && role != \"owner\")",
+    "after": "(false && role != \"owner\")",
+    "package": "./internal/folkweave",
+    "run": "^TestRevokedInvitationAndMemberPermissions$"
+  },
+  {
+    "name": "failed attachment writes roll back the entire post",
+    "file": "internal/folkweave/posts.go",
+    "before": "print := postFingerprint(body, photos)\n\ttx, err := s.db.BeginTx(ctx, nil)\n\tif err != nil {\n\t\treturn 0, err\n\t}\n\tdefer tx.Rollback()",
+    "after": "print := postFingerprint(body, photos)\n\ttx, err := s.db.BeginTx(ctx, nil)\n\tif err != nil {\n\t\treturn 0, err\n\t}\n\tdefer tx.Commit()",
+    "package": "./internal/folkweave",
+    "run": "^TestPostRetryIdentityAndAtomicPhotos$"
+  },
+  {
+    "name": "post retries find the existing receipt",
+    "file": "internal/folkweave/posts.go",
+    "before": "SELECT id,fingerprint FROM posts WHERE user_id=? AND submission_key=?",
+    "after": "SELECT id,fingerprint FROM posts WHERE user_id=? AND submission_key=?||'never'",
+    "package": "./internal/folkweave",
+    "run": "^TestPostRetryIdentityAndAtomicPhotos$"
+  },
+  {
+    "name": "pagination boundary excludes the previous last row",
+    "file": "internal/folkweave/posts.go",
+    "before": "WHERE p.id<=? AND (?=0 OR p.id<?)",
+    "after": "WHERE p.id<=? AND (?=0 OR p.id<=?)",
+    "package": "./internal/folkweave",
+    "run": "^TestPaginationPropertyWithConcurrentInsertAndEdit$"
+  },
+  {
+    "name": "bookmarks remain private",
+    "file": "internal/folkweave/posts.go",
+    "before": "v.post_id=p.id AND v.user_id=?",
+    "after": "v.post_id=p.id AND v.user_id>=?",
+    "package": "./internal/folkweave",
+    "run": "^TestRepliesSaveDeleteAndSuspension$"
+  },
+  {
+    "name": "photos require an authenticated member",
+    "file": "internal/folkweave/web.go",
+    "before": "mux.HandleFunc(\"GET /photos/{id}\", a.private(a.photo))",
+    "after": "mux.HandleFunc(\"GET /photos/{id}\", a.photo)",
+    "package": "./internal/folkweave",
+    "run": "^TestRoutesPrivacyAndSecurityHeaders$"
+  },
+  {
+    "name": "writes require CSRF verification",
+    "file": "internal/folkweave/web.go",
+    "before": "if len(r.PostForm[\"csrf\"]) != 1 || !token.Equal(r.PostForm.Get(\"csrf\"), st.CSRF) {",
+    "after": "if false {",
+    "package": "./internal/folkweave",
+    "run": "^TestCSRFOriginAndMethodBoundaries$"
+  },
+  {
+    "name": "post text is escaped",
+    "file": "internal/folkweave/web.go",
+    "before": "out.WriteString(template.HTMLEscapeString(value[last:]))",
+    "after": "out.WriteString(value[last:])",
+    "package": "./internal/folkweave",
+    "run": "^TestMalformedInputsAndUnsafeLinks$"
+  },
+  {
+    "name": "JPEG orientation is applied before sharing",
+    "file": "internal/folkweave/photos.go",
+    "before": "source = orient(source, jpegOrientation(data))",
+    "after": "source = orient(source, 1)",
+    "package": "./internal/folkweave",
+    "run": "^TestNormalizeJPEGOrientationAndMetadataRemoval$"
+  },
+  {
+    "name": "private pages must not be cached",
+    "file": "internal/folkweave/web.go",
+    "before": "w.Header().Set(\"Cache-Control\", \"no-store\")",
+    "after": "w.Header().Set(\"Cache-Control\", \"public, max-age=3600\")",
+    "package": "./internal/folkweave",
+    "run": "^TestRoutesPrivacyAndSecurityHeaders$"
+  },
+  {
+    "name": "failed composer submissions target only the error message",
+    "file": "internal/folkweave/web.go",
+    "before": "target := \"#composer-error\"",
+    "after": "target := \"#composer\"",
+    "package": "./internal/folkweave",
+    "run": "^TestMultipartPhotoRoutesAndFailedDraft$"
+  }
+]

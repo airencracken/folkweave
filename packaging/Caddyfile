@@ -1,0 +1,5 @@
+# The external origin must match FOLKWEAVE_BASE_URL.
+folkweave.example.org {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8084
+}

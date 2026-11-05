@@ -1,0 +1,7 @@
+*
+!dist/
+!dist/folkweave
+!packaging/
+!packaging/data/
+!packaging/data/.keep
+!Dockerfile
