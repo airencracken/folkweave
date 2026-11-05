@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Exercise an isolated, non-root development container and remove its own fixtures."""
 import http.cookiejar
+import io
 import json
 import re
 import subprocess
+import tarfile
 import time
 import urllib.error
 import urllib.parse
@@ -23,6 +25,19 @@ def main():
     docker('volume', 'create', '--label', 'org.comfyware.fixture=true', name)
     started = False
     try:
+        # Inspect the image directory before Docker copies it into a named volume.
+        image_container = name + '-image'
+        docker('create', '--name', image_container, 'folkweave:dev')
+        try:
+            archive = subprocess.run(['docker', 'export', image_container],
+                                     capture_output=True, check=True)
+            with tarfile.open(fileobj=io.BytesIO(archive.stdout)) as rootfs:
+                directory = rootfs.getmember('data')
+                assert directory.isdir()
+                assert directory.mode == 0o700, oct(directory.mode)
+                assert (directory.uid, directory.gid) == (65532, 65532)
+        finally:
+            subprocess.run(['docker', 'rm', '-v', image_container], capture_output=True)
         docker('run', '--rm', '-i', '--mount', f'type=volume,source={name},target=/data',
                'folkweave:dev', 'init', '--data', '/data', '--username', 'owner',
                '--name', 'Owner', '--title', 'Container folks', '--password-stdin',

@@ -2,6 +2,7 @@
 !dist/
 !dist/folkweave
 !packaging/
-!packaging/data/
-!packaging/data/.keep
+!packaging/rootfs/
+!packaging/rootfs/data/
+!packaging/rootfs/data/.keep
 !Dockerfile
