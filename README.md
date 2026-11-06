@@ -1,5 +1,7 @@
 # Folkweave
 
+<img src="internal/folkweave/static/loom.webp" alt="Folkweave’s little wooden loom" width="144" height="144" align="right">
+
 A private timeline for your people. A thought, a photograph, a bit of your day.
 
 Folkweave is a small, self-hosted Comfyware app for friends, family, or another
@@ -7,6 +9,10 @@ group who choose each other. Each installation has its own accounts and
 invite-only membership. Everyone in the gathering can see its earlier posts.
 
 This is the first development pass, version `0.1.0-dev`.
+
+<br clear="right">
+
+[Comfyware](https://comfyware.org/) · [Project page](https://comfyware.org/folkweave/) · [Help and bugs](https://github.com/airencracken/folkweave/issues)
 
 ## Try it
 
@@ -151,6 +157,11 @@ pagination during writes, media boundaries and orientation, snapshot/restore,
 JavaScript/no-JavaScript flows, composer lifecycle, and mutations of key guards.
 
 [Architecture](docs/architecture.md) · [HTTP API](docs/api.md) · [Mascot](docs/mascot.md)
+
+## Support
+
+You can [support Folkweave on Ko-fi](https://ko-fi.com/airencracken).
+Support helps maintain Folkweave and the other [Comfyware projects](https://comfyware.org/).
 
 ## License
 

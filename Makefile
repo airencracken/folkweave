@@ -26,6 +26,7 @@ test-mutations:
 	python3 tools/mutate.py --jobs 2 mutations/core.json
 
 check:
+	python3 scripts/test_project.py
 	go run ./tools/check-format
 	go vet ./...
 	$(MAKE) test test-js
