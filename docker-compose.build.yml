@@ -1,0 +1,8 @@
+services:
+  folkweave:
+    image: folkweave:local
+    pull_policy: build
+    build:
+      context: .
+      args:
+        VERSION: development

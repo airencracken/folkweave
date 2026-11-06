@@ -1,0 +1,21 @@
+#!/sbin/openrc-run
+name="Folkweave"
+description="A private group timeline"
+command="/usr/local/bin/folkweave"
+command_args="serve"
+command_user="${FOLKWEAVE_USER:-folkweave}:${FOLKWEAVE_GROUP:-folkweave}"
+directory="${FOLKWEAVE_DATA_DIR:-/var/lib/folkweave}"
+command_background="yes"
+pidfile="/run/folkweave.pid"
+output_log="/var/log/folkweave.log"
+error_log="/var/log/folkweave.log"
+umask 0077
+
+depend() {
+ need net
+}
+
+start_pre() {
+ checkpath --directory --mode 0700 --owner "$command_user" "$directory" || return 1
+ checkpath --file --mode 0600 --owner "$command_user" "$output_log" || return 1
+}

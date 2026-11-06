@@ -1,10 +1,32 @@
-FROM scratch
-COPY --chmod=0755 dist/folkweave /usr/local/bin/folkweave
-# Copy data as a child directory so its own mode is applied by older builders.
-COPY --chown=65532:65532 --chmod=0700 packaging/rootfs/ /
-USER 65532:65532
-ENV FOLKWEAVE_DATA_DIR=/data FOLKWEAVE_BASE_URL=http://localhost:8084
-VOLUME /data
-EXPOSE 8084
+FROM golang:1.26-alpine@sha256:27f2d3b83cfc5803c8078f8e730af0f7c431bf067afaec8f60a36fb763187cba AS build
+WORKDIR /src
+ENV GOWORK=off CGO_ENABLED=0
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+ARG VERSION=development
+RUN go build -buildvcs=false -trimpath -ldflags="-s -w -X main.version=$VERSION" -o /out/folkweave ./cmd/folkweave
+
+FROM alpine:3.23@sha256:21f3e19bafab57a9ff7aa9dd571dac72f868370472c10f450cc0416cc1aca553
+ARG VERSION=development
+ARG REVISION=unknown
+LABEL org.opencontainers.image.source="https://github.com/airencracken/folkweave" \
+      org.opencontainers.image.licenses="AGPL-3.0-or-later" \
+      org.opencontainers.image.version="$VERSION" \
+      org.opencontainers.image.revision="$REVISION"
+RUN apk add --no-cache ca-certificates tzdata zstd \
+    && addgroup -S -g 10001 folkweave \
+    && adduser -S -D -H -u 10001 -G folkweave -h /data folkweave \
+    && mkdir /data \
+    && chown 10001:10001 /data \
+    && chmod 0700 /data
+ENV FOLKWEAVE_DATA_DIR=/data FOLKWEAVE_LISTEN=0.0.0.0:8080 TMPDIR=/tmp
+USER 10001:10001
+VOLUME ["/data"]
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD port="${FOLKWEAVE_LISTEN##*:}"; wget -q -T 4 -O /dev/null "http://127.0.0.1:${port:-8080}/healthz" || exit 1
 ENTRYPOINT ["/usr/local/bin/folkweave"]
-CMD ["serve", "--listen", "0.0.0.0:8084"]
+CMD ["serve"]
+COPY --from=build /out/folkweave /usr/local/bin/folkweave
+COPY LICENSE README.md /usr/share/doc/folkweave/

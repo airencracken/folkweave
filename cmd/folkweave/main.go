@@ -19,13 +19,27 @@ import (
 
 	"github.com/airencracken/comfylib/autobackup"
 	"github.com/airencracken/comfylib/password"
+	"github.com/airencracken/comfylib/privdrop"
+	"github.com/airencracken/comfylib/svcconfig"
 	"github.com/airencracken/folkweave/internal/folkweave"
 	"github.com/gofrs/flock"
 )
 
-var version = "0.1.0-dev"
+var version = "0.1.0"
+
+var instanceCommands = map[string]bool{"init": true, "set-password": true, "backup": true, "restore": true}
+var serviceSettings = []string{"FOLKWEAVE_LISTEN", "FOLKWEAVE_BASE_URL", "FOLKWEAVE_TRUSTED_PROXIES", "FOLKWEAVE_BACKUP_INTERVAL", "FOLKWEAVE_BACKUP_KEEP", "FOLKWEAVE_BACKUP_MAX_BYTES", "FOLKWEAVE_BACKUP_COPY_MAX_BYTES"}
 
 func main() {
+	paths := svcconfig.Detect("folkweave", "/var/lib/folkweave")
+	handled, status, err := privdrop.Reexec(privdrop.Request{Args: os.Args[1:], Commands: instanceCommands, Paths: paths, DefaultUser: "folkweave", Settings: func(command, dir string) (map[string]string, error) { return paths.Settings(serviceSettings...) }})
+	if handled {
+		if err != nil {
+			slog.Error("administrative command", "error", err)
+		}
+		os.Exit(status)
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if err := run(ctx, os.Args[1:], os.Stdin, os.Stdout); err != nil {
@@ -49,9 +63,34 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 		return nil
 	}
 	command := args[0]
+	if instanceCommands[command] && !privdrop.HasHelpFlag(args[1:]) {
+		if err := privdrop.RefuseRoot(os.Geteuid(), command, "sudo -u folkweave folkweave "+command); err != nil {
+			return err
+		}
+	}
+	paths := svcconfig.Detect("folkweave", "/var/lib/folkweave")
+	dataDefault := "./data"
+	settings := map[string]string{}
+	if command != "demo" {
+		var err error
+		dataDefault, err = paths.DataDir("FOLKWEAVE_DATA_DIR")
+		if err != nil {
+			return err
+		}
+		settings, err = processSettings(paths)
+		if err != nil {
+			return err
+		}
+	}
+	setting := func(key, fallback string) string {
+		if v := settings[key]; v != "" {
+			return v
+		}
+		return env(key, fallback)
+	}
 	f := flag.NewFlagSet(command, flag.ContinueOnError)
 	f.SetOutput(out)
-	data := f.String("data", env("FOLKWEAVE_DATA_DIR", "./data"), "private data directory")
+	data := f.String("data", dataDefault, "private data directory")
 	switch command {
 	case "init", "set-password":
 		username := f.String("username", "", "owner's username")
@@ -116,9 +155,9 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 		fmt.Fprintln(out, "Your gathering is ready. Start it with: folkweave serve --data", *data)
 		return nil
 	case "serve", "demo":
-		listen := f.String("listen", env("FOLKWEAVE_LISTEN", "127.0.0.1:8084"), "HTTP listen address")
-		base := f.String("base-url", env("FOLKWEAVE_BASE_URL", ""), "public HTTP or HTTPS origin")
-		trusted := f.String("trusted-proxies", env("FOLKWEAVE_TRUSTED_PROXIES", ""), "comma-separated trusted proxy CIDRs")
+		listen := f.String("listen", setting("FOLKWEAVE_LISTEN", "127.0.0.1:8084"), "HTTP listen address")
+		base := f.String("base-url", setting("FOLKWEAVE_BASE_URL", ""), "public HTTP or HTTPS origin")
+		trusted := f.String("trusted-proxies", setting("FOLKWEAVE_TRUSTED_PROXIES", ""), "comma-separated trusted proxy CIDRs")
 		if err := f.Parse(args[1:]); err != nil {
 			return helpError(err)
 		}
@@ -171,7 +210,7 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 		if err != nil {
 			return err
 		}
-		backupConfig, err := autobackup.Load("folkweave", *data, os.Getenv)
+		backupConfig, err := autobackup.Load("folkweave", *data, func(key string) string { return setting(key, "") })
 		if err != nil {
 			return err
 		}
@@ -315,4 +354,19 @@ func restore(ctx context.Context, source, destination string, out io.Writer) err
 	}
 	fmt.Fprintln(out, "Restored gathering:", abs)
 	return nil
+}
+
+// Service managers and root administrative re-execution already supply the
+// resolved environment. A service account must not reopen root-only config.
+func processSettings(paths svcconfig.Paths) (map[string]string, error) {
+	if os.Geteuid() == 0 {
+		return paths.Settings(serviceSettings...)
+	}
+	settings := map[string]string{}
+	for _, key := range serviceSettings {
+		if value := os.Getenv(key); value != "" {
+			settings[key] = value
+		}
+	}
+	return settings, nil
 }

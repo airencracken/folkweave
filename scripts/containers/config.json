@@ -1,0 +1,7 @@
+{
+  "app": "folkweave",
+  "previous": null,
+  "port": 8084,
+  "tmp_mb": 128,
+  "owner_command": "init"
+}

@@ -8,11 +8,20 @@ Folkweave is a small, self-hosted Comfyware app for friends, family, or another
 group who choose each other. Each installation has its own accounts and
 invite-only membership. Everyone in the gathering can see its earlier posts.
 
-This is the first development pass, version `0.1.0-dev`.
+Initial release: **[0.1.0](https://github.com/airencracken/folkweave/releases/tag/v0.1.0)**.
 
 <br clear="right">
 
 [Comfyware](https://comfyware.org/) · [Project page](https://comfyware.org/folkweave/) · [Help and bugs](https://github.com/airencracken/folkweave/issues)
+
+## Install
+
+Choose a [Linux archive or Debian package](docs/releases.md),
+[Docker Compose](docs/containers.md), or the
+[Comfyware Gentoo overlay](https://github.com/airencracken/comfyware#add-the-overlay).
+Read the [hosting](docs/deployment.md), [backup/recovery](docs/automatic-backups.md),
+and [release notes](docs/release-notes.md) before sharing an installation.
+The source demos below use disposable local data.
 
 ## Try it
 
@@ -123,19 +132,9 @@ from **Account**. Credentials and other members' posts are excluded.
 
 ## Containers
 
-Build the development image from the local Linux binary:
-
-```sh
-make image
-docker compose run --rm folkweave init --data /data --username owner
-docker compose up -d
-```
-
-Visit <http://localhost:8084>. Set `FOLKWEAVE_BASE_URL` to the actual HTTPS
-origin before sharing an installation online. The image runs as UID/GID 65532;
-the example uses a named volume, a read-only root filesystem, and a private
-temporary directory. This first pass does not publish container images or
-distribution packages.
+The [Docker Compose guide](docs/containers.md) uses the version-pinned
+`ghcr.io/airencracken/folkweave:v0.1.0` image and a private named volume.
+Container port 8080 maps to localhost port 8084. It runs as UID/GID 10001.
 
 ## Development and checks
 
