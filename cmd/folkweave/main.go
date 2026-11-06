@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"flag"
@@ -27,7 +26,7 @@ import (
 
 var version = "0.1.1"
 
-var instanceCommands = map[string]bool{"init": true, "create-owner": true, "set-password": true, "backup": true, "restore": true}
+var instanceCommands = map[string]bool{"setup": true, "init": true, "create-owner": true, "set-password": true, "backup": true, "restore": true}
 var serviceSettings = []string{"FOLKWEAVE_LISTEN", "FOLKWEAVE_BASE_URL", "FOLKWEAVE_TRUSTED_PROXIES", "FOLKWEAVE_BACKUP_INTERVAL", "FOLKWEAVE_BACKUP_KEEP", "FOLKWEAVE_BACKUP_MAX_BYTES", "FOLKWEAVE_BACKUP_COPY_MAX_BYTES"}
 
 func main() {
@@ -54,8 +53,14 @@ func env(key, fallback string) string {
 	return fallback
 }
 func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error {
+	if len(args) > 0 && args[0] == "help" && len(args) == 2 {
+		return run(ctx, []string{args[1], "--help"}, in, out)
+	}
+	if len(args) > 2 && args[0] == "help" {
+		return errors.New("usage: folkweave help [COMMAND]")
+	}
 	if len(args) == 0 || args[0] == "help" || args[0] == "--help" {
-		fmt.Fprintln(out, "Folkweave — a private timeline for your people.\n\nCommands: create-owner, init, serve, demo, backup, restore, set-password, version\nUse COMMAND --help for options.")
+		fmt.Fprintln(out, "Folkweave — a private timeline for your people.\n\nCommands: setup, create-owner, init, serve, demo, backup, restore, set-password, version\nUse COMMAND --help for options.")
 		return nil
 	}
 	if args[0] == "version" || args[0] == "--version" {
@@ -90,39 +95,38 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 	}
 	f := flag.NewFlagSet(command, flag.ContinueOnError)
 	f.SetOutput(out)
-	data := f.String("data", dataDefault, "private data directory")
+	data := f.String("data", dataDefault, "private data directory (compatibility alias for --data-dir)")
+	f.StringVar(data, "data-dir", dataDefault, "private data directory")
 	switch command {
-	case "init", "create-owner", "set-password":
-		username := f.String("username", "", "owner's username")
-		name := f.String("name", "", "owner's display name")
-		title := f.String("title", "Our people", "name of the gathering when creating its first owner")
-		stdin := f.Bool("password-stdin", false, "read one password line from stdin")
+	case "setup":
 		if err := f.Parse(args[1:]); err != nil {
 			return helpError(err)
 		}
 		if f.NArg() != 0 {
 			return errors.New("unexpected arguments")
 		}
-		var secret string
-		var err error
-		reader := bufio.NewReader(io.LimitReader(in, 2048))
-		read := func() ([]byte, error) {
-			line, e := reader.ReadString('\n')
-			if e != nil && e != io.EOF {
-				return nil, e
-			}
-			return []byte(strings.TrimSuffix(strings.TrimSuffix(line, "\n"), "\r")), nil
+		store, err := folkweave.Open(*data)
+		if err != nil {
+			return err
 		}
-		if *stdin {
-			value, e := read()
-			secret, err = string(value), e
-		} else {
-			file, ok := in.(*os.File)
-			if !ok {
-				return errors.New("use --password-stdin when input is not a terminal")
-			}
-			secret, err = password.WithHiddenInput(int(file.Fd()), func() (string, error) { return password.Confirm(out, "Password: ", "Again: ", read) })
+		defer store.Close()
+		wizard, err := firstSetup(store, *data, setting("FOLKWEAVE_BASE_URL", ""), setting("FOLKWEAVE_LISTEN", "127.0.0.1:8084"))
+		if err != nil {
+			return err
 		}
+		return wizard.Enable(ctx, out)
+	case "init", "create-owner", "set-password":
+		username := f.String("username", "", "owner's username")
+		name := f.String("name", "", "owner's display name")
+		title := f.String("title", "Our people", "name of the gathering when creating its first owner")
+		source := password.Flags(f)
+		if err := f.Parse(args[1:]); err != nil {
+			return helpError(err)
+		}
+		if f.NArg() != 0 {
+			return errors.New("unexpected arguments")
+		}
+		secret, err := source.Read(in, out)
 		if err != nil {
 			return err
 		}
@@ -203,9 +207,6 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 				return err
 			}
 		}
-		if !store.Ready(ctx) {
-			return errors.New("this gathering needs an owner; run folkweave create-owner --username NAME first")
-		}
 		listener, err := net.Listen("tcp", *listen)
 		if err != nil {
 			return err
@@ -226,11 +227,20 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 		if err != nil {
 			return err
 		}
+		wizard, err := firstSetup(store, *data, *base, *listen)
+		if err != nil {
+			return err
+		}
 		workerCtx, cancel := context.WithCancel(ctx)
 		done := make(chan struct{})
-		go func() { defer close(done); app.Backups.Run(workerCtx) }()
+		go func() {
+			defer close(done)
+			if wizard.Wait(workerCtx) == nil {
+				app.Backups.Run(workerCtx)
+			}
+		}()
 		defer func() { cancel(); <-done }()
-		server := &http.Server{Handler: app, ReadHeaderTimeout: 10 * time.Second, ReadTimeout: 5 * time.Minute, WriteTimeout: 5 * time.Minute, IdleTimeout: 90 * time.Second, MaxHeaderBytes: 32 << 10}
+		server := &http.Server{Handler: wizard.Wrap(app), ReadHeaderTimeout: 10 * time.Second, ReadTimeout: 5 * time.Minute, WriteTimeout: 5 * time.Minute, IdleTimeout: 90 * time.Second, MaxHeaderBytes: 32 << 10}
 		finished := make(chan error, 1)
 		go func() { finished <- server.Serve(listener) }()
 		fmt.Fprintln(out, "Folkweave is listening at", *base)

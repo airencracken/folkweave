@@ -150,5 +150,13 @@
     "after": "\"create-owner\": false",
     "package": "./cmd/folkweave",
     "run": "^TestCreateOwnerCommand$"
+  },
+  {
+    "name": "browser setup refuses a second owner",
+    "file": "internal/folkweave/store.go",
+    "before": "if initialOnly {",
+    "after": "if false && initialOnly {",
+    "package": "./internal/folkweave",
+    "run": "^TestBrowserFirstOwnerContract$"
   }
 ]

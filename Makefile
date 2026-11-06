@@ -25,7 +25,7 @@ test-race:
 test-mutations:
 	python3 tools/mutate.py --jobs 2 mutations/core.json
 
-check:
+check: test-cli
 	python3 -m unittest discover -s scripts/containers -p "test_*.py"
 	python3 scripts/release/test_config.py
 	python3 scripts/test_project.py
@@ -41,3 +41,8 @@ test-containers:
 	python3 -m unittest discover -s scripts/containers -p 'test_*.py'
 test-container-registry:
 	python3 scripts/containers/check_registry.py
+
+.PHONY: test-cli
+test-cli: build
+	python3 "$$(go list -m -f '{{.Dir}}' github.com/airencracken/comfylib)/tools/check_password_cli.py" --binary dist/folkweave --command create-owner --data-env FOLKWEAVE_DATA_DIR --prompt "Password: " --confirmation "Confirm password: "
+	python3 "$$(go list -m -f '{{.Dir}}' github.com/airencracken/comfylib)/tools/check_setup.py" --binary dist/folkweave --app folkweave

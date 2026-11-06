@@ -170,3 +170,9 @@ Support helps maintain Folkweave and the other [Comfyware projects](https://comf
 
 AGPL-3.0-or-later. See [LICENSE](LICENSE). Embedded HTMX and Alpine releases,
 licenses, sources, and checksums are recorded in [THIRD_PARTY.md](THIRD_PARTY.md).
+
+## Common setup
+
+New source builds share [browser and command-line setup](docs/setup.md) with the
+other Comfyware apps: `folkweave setup` authorizes the first-owner browser page,
+and `folkweave create-owner --username NAME` prompts privately by default.
