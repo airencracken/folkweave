@@ -8,7 +8,7 @@ Folkweave is a small, self-hosted Comfyware app for friends, family, or another
 group who choose each other. Each installation has its own accounts and
 invite-only membership. Everyone in the gathering can see its earlier posts.
 
-Initial release: **[0.1.0](https://github.com/airencracken/folkweave/releases/tag/v0.1.0)**.
+Current release: **[0.1.1](https://github.com/airencracken/folkweave/releases/tag/v0.1.1)**.
 
 <br clear="right">
 
@@ -137,7 +137,7 @@ from **Account**. Credentials and other members' posts are excluded.
 ## Containers
 
 The [Docker Compose guide](docs/containers.md) uses the version-pinned
-`ghcr.io/airencracken/folkweave:v0.1.0` image and a private named volume.
+`ghcr.io/airencracken/folkweave:v0.1.1` image and a private named volume.
 Container port 8080 maps to localhost port 8084. It runs as UID/GID 10001.
 
 ## Development and checks

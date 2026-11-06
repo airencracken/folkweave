@@ -11,6 +11,12 @@ output_log="/var/log/folkweave.log"
 error_log="/var/log/folkweave.log"
 umask 0077
 
+# OpenRC sources conf.d as shell assignments; pass application settings to the
+# unprivileged process without requiring export in the administrator's file.
+export FOLKWEAVE_DATA_DIR FOLKWEAVE_LISTEN FOLKWEAVE_BASE_URL FOLKWEAVE_TRUSTED_PROXIES
+export FOLKWEAVE_BACKUP_INTERVAL FOLKWEAVE_BACKUP_KEEP
+export FOLKWEAVE_BACKUP_MAX_BYTES FOLKWEAVE_BACKUP_COPY_MAX_BYTES
+
 depend() {
  need net
 }

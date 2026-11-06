@@ -1,4 +1,7 @@
-# Unreleased
+# Folkweave 0.1.1
+
+- Fix OpenRC configuration inheritance: existing plain assignments now reach the
+  service without requiring `export`, including the public origin and proxy trust.
 
 - Add `folkweave create-owner --username NAME` for first-time setup and additional
   owner accounts. It preserves existing settings and rejects existing usernames.

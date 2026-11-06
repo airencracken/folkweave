@@ -25,7 +25,7 @@ import (
 	"github.com/gofrs/flock"
 )
 
-var version = "0.1.0"
+var version = "0.1.1"
 
 var instanceCommands = map[string]bool{"init": true, "create-owner": true, "set-password": true, "backup": true, "restore": true}
 var serviceSettings = []string{"FOLKWEAVE_LISTEN", "FOLKWEAVE_BASE_URL", "FOLKWEAVE_TRUSTED_PROXIES", "FOLKWEAVE_BACKUP_INTERVAL", "FOLKWEAVE_BACKUP_KEEP", "FOLKWEAVE_BACKUP_MAX_BYTES", "FOLKWEAVE_BACKUP_COPY_MAX_BYTES"}

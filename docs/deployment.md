@@ -16,6 +16,9 @@ Only trust proxies that you control. Examples for Caddy, nginx, and Apache are
 included under `deploy/`. Keep the upstream listener private and terminate TLS
 at your proxy. Native defaults use 8084; containers use port 8080 internally.
 
+OpenRC accepts ordinary `FOLKWEAVE_*=value` assignments in `/etc/conf.d/folkweave`;
+`export` is optional. The init script passes the supported settings to the service.
+
 ## Services and account commands
 
 The Debian and Gentoo packages use `/usr/bin/folkweave`. Source service examples
@@ -53,7 +56,7 @@ See [backup and recovery](automatic-backups.md) and [installation/upgrades](rele
 
 ## Creating owners from the command line
 
-Source builds after 0.1.0 accept `folkweave create-owner --username NAME`,
+Releases from 0.1.1 accept `folkweave create-owner --username NAME`,
 using the same hidden password confirmation and service-account re-execution as
 `init`. It initializes a fresh gathering or adds another owner to an existing
 one. Existing usernames are rejected, and existing settings, accounts, and
