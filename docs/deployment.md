@@ -50,3 +50,16 @@ database. Check `/healthz` for readiness. Do not use process existence as the
 only readiness signal. Provision the first owner before starting the service.
 
 See [backup and recovery](automatic-backups.md) and [installation/upgrades](releases.md).
+
+## Creating owners from the command line
+
+Source builds after 0.1.0 accept `folkweave create-owner --username NAME`,
+using the same hidden password confirmation and service-account re-execution as
+`init`. It initializes a fresh gathering or adds another owner to an existing
+one. Existing usernames are rejected, and existing settings, accounts, and
+sessions stay intact. `--name` sets the new owner's display name; `--title` sets
+the gathering name only when its settings are first created.
+
+For the published 0.1.0 binary, use `folkweave init --username NAME` to create the
+first owner. The `init` command remains supported and refuses an already
+initialized gathering. Use `set-password` to reset an existing account's password.

@@ -27,7 +27,7 @@ import (
 
 var version = "0.1.0"
 
-var instanceCommands = map[string]bool{"init": true, "set-password": true, "backup": true, "restore": true}
+var instanceCommands = map[string]bool{"init": true, "create-owner": true, "set-password": true, "backup": true, "restore": true}
 var serviceSettings = []string{"FOLKWEAVE_LISTEN", "FOLKWEAVE_BASE_URL", "FOLKWEAVE_TRUSTED_PROXIES", "FOLKWEAVE_BACKUP_INTERVAL", "FOLKWEAVE_BACKUP_KEEP", "FOLKWEAVE_BACKUP_MAX_BYTES", "FOLKWEAVE_BACKUP_COPY_MAX_BYTES"}
 
 func main() {
@@ -55,7 +55,7 @@ func env(key, fallback string) string {
 }
 func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error {
 	if len(args) == 0 || args[0] == "help" || args[0] == "--help" {
-		fmt.Fprintln(out, "Folkweave — a private timeline for your people.\n\nCommands: init, serve, demo, backup, restore, set-password, version\nUse COMMAND --help for options.")
+		fmt.Fprintln(out, "Folkweave — a private timeline for your people.\n\nCommands: create-owner, init, serve, demo, backup, restore, set-password, version\nUse COMMAND --help for options.")
 		return nil
 	}
 	if args[0] == "version" || args[0] == "--version" {
@@ -92,10 +92,10 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 	f.SetOutput(out)
 	data := f.String("data", dataDefault, "private data directory")
 	switch command {
-	case "init", "set-password":
+	case "init", "create-owner", "set-password":
 		username := f.String("username", "", "owner's username")
 		name := f.String("name", "", "owner's display name")
-		title := f.String("title", "Our people", "name of the gathering")
+		title := f.String("title", "Our people", "name of the gathering when creating its first owner")
 		stdin := f.Bool("password-stdin", false, "read one password line from stdin")
 		if err := f.Parse(args[1:]); err != nil {
 			return helpError(err)
@@ -149,10 +149,18 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 			fmt.Fprintln(out, "Password changed; earlier sessions have been revoked.")
 			return nil
 		}
-		if err = store.Bootstrap(ctx, *username, hash, *name, *title); err != nil {
+		provision := store.Bootstrap
+		if command == "create-owner" {
+			provision = store.CreateOwner
+		}
+		if err = provision(ctx, *username, hash, *name, *title); err != nil {
 			return err
 		}
-		fmt.Fprintln(out, "Your gathering is ready. Start it with: folkweave serve --data", *data)
+		if command == "create-owner" {
+			fmt.Fprintln(out, "Owner account created.")
+		} else {
+			fmt.Fprintln(out, "Your gathering is ready. Start it with: folkweave serve --data", *data)
+		}
 		return nil
 	case "serve", "demo":
 		listen := f.String("listen", setting("FOLKWEAVE_LISTEN", "127.0.0.1:8084"), "HTTP listen address")
@@ -196,7 +204,7 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 			}
 		}
 		if !store.Ready(ctx) {
-			return errors.New("this gathering needs an owner; run folkweave init first")
+			return errors.New("this gathering needs an owner; run folkweave create-owner --username NAME first")
 		}
 		listener, err := net.Listen("tcp", *listen)
 		if err != nil {

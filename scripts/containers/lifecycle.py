@@ -60,7 +60,7 @@ class Lifecycle:
                                   '/usr/local/bin/' + self.app], capture_output=True, check=True).stdout
             assert hashlib.sha256(raw).digest() == hashlib.sha256(binary.read_bytes()).digest()
         if self.app == 'folkweave':
-            self.once('init', '--username', 'containerowner', '--name', 'Owner', '--password-stdin', stdin='container-test-password-long-enough\n')
+            self.once('create-owner', '--username', 'containerowner', '--name', 'Owner', '--password-stdin', stdin='container-test-password-long-enough\n')
         else:
             self.once('-c', 'umask 077; cat > /tmp/password || exit 1; exec /usr/local/bin/tidings create-owner --username containerowner --password-file /tmp/password', shell=True, stdin='container-test-password-long-enough\n')
         first = self.start()

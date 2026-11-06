@@ -118,5 +118,37 @@
     "after": "target := \"#composer\"",
     "package": "./internal/folkweave",
     "run": "^TestMultipartPhotoRoutesAndFailedDraft$"
+  },
+  {
+    "name": "new owners keep gathering settings",
+    "file": "internal/folkweave/store.go",
+    "before": "INSERT INTO settings(id,title) VALUES(1,?) ON CONFLICT(id) DO NOTHING",
+    "after": "INSERT INTO settings(id,title) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title",
+    "package": "./internal/folkweave",
+    "run": "^TestCreateOwnerPreservesExistingGathering$"
+  },
+  {
+    "name": "new accounts receive owner permissions",
+    "file": "internal/folkweave/store.go",
+    "before": "INSERT INTO users(username,password_hash,name,role,created_at) VALUES(?,?,?,'owner',?) ON CONFLICT(username) DO NOTHING",
+    "after": "INSERT INTO users(username,password_hash,name,role,created_at) VALUES(?,?,?,'member',?) ON CONFLICT(username) DO NOTHING",
+    "package": "./internal/folkweave",
+    "run": "^TestCreateOwnerPreservesExistingGathering$"
+  },
+  {
+    "name": "owner provisioning rolls back when settings fail",
+    "file": "internal/folkweave/store.go",
+    "before": "defer tx.Rollback()\n\tif initialOnly {",
+    "after": "defer tx.Commit()\n\tif initialOnly {",
+    "package": "./internal/folkweave",
+    "run": "^TestCreateFirstOwnerAndSettingsAreAtomic$"
+  },
+  {
+    "name": "owner command uses service privilege handling",
+    "file": "cmd/folkweave/main.go",
+    "before": "\"create-owner\": true",
+    "after": "\"create-owner\": false",
+    "package": "./cmd/folkweave",
+    "run": "^TestCreateOwnerCommand$"
   }
 ]

@@ -155,7 +155,18 @@ func HashPassword(password string) (string, error) {
 	return string(b), err
 }
 
+// Bootstrap initializes a new gathering and refuses any existing accounts.
 func (s *Store) Bootstrap(ctx context.Context, username, hash, name, title string) error {
+	return s.provisionOwner(ctx, username, hash, name, title, true)
+}
+
+// CreateOwner provisions a new owner without changing existing accounts or
+// gathering settings. The first account and settings are created atomically.
+func (s *Store) CreateOwner(ctx context.Context, username, hash, name, title string) error {
+	return s.provisionOwner(ctx, username, hash, name, title, false)
+}
+
+func (s *Store) provisionOwner(ctx context.Context, username, hash, name, title string, initialOnly bool) error {
 	username = strings.ToLower(strings.TrimSpace(username))
 	name = strings.TrimSpace(name)
 	title = strings.TrimSpace(title)
@@ -170,17 +181,27 @@ func (s *Store) Bootstrap(ctx context.Context, username, hash, name, title strin
 		return err
 	}
 	defer tx.Rollback()
-	var count int
-	if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM users").Scan(&count); err != nil {
+	if initialOnly {
+		var count int
+		if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM users").Scan(&count); err != nil {
+			return err
+		}
+		if count != 0 {
+			return ErrConflict
+		}
+	}
+	res, err := tx.ExecContext(ctx, "INSERT INTO users(username,password_hash,name,role,created_at) VALUES(?,?,?,'owner',?) ON CONFLICT(username) DO NOTHING", username, hash, name, time.Now().UnixMilli())
+	if err != nil {
 		return err
 	}
-	if count != 0 {
-		return ErrConflict
-	}
-	if _, err = tx.ExecContext(ctx, "INSERT INTO users(username,password_hash,name,role,created_at) VALUES(?,?,?,'owner',?)", username, hash, name, time.Now().UnixMilli()); err != nil {
+	n, err := res.RowsAffected()
+	if err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, "INSERT INTO settings(id,title) VALUES(1,?)", title); err != nil {
+	if n != 1 {
+		return ErrUsername
+	}
+	if _, err = tx.ExecContext(ctx, "INSERT INTO settings(id,title) VALUES(1,?) ON CONFLICT(id) DO NOTHING", title); err != nil {
 		return err
 	}
 	return tx.Commit()

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/airencracken/folkweave/internal/folkweave"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func TestInitBackupRestoreLifecycle(t *testing.T) {
@@ -143,5 +144,61 @@ func TestDemoUsesDisposableDataAndShutsDown(t *testing.T) {
 	files, _ := filepath.Glob(filepath.Join(root, "folkweave-demo-*"))
 	if len(files) != 0 {
 		t.Fatal("demo data not removed")
+	}
+}
+
+func TestCreateOwnerCommand(t *testing.T) {
+	ctx := context.Background()
+	data := filepath.Join(t.TempDir(), "data")
+	t.Setenv("FOLKWEAVE_DATA_DIR", data)
+	password := "an-owner-test-password"
+	var output bytes.Buffer
+	if !instanceCommands["create-owner"] {
+		t.Fatal("create-owner bypasses service-account re-execution and root-write protection")
+	}
+	for _, args := range [][]string{{"create-owner", "--username", "airen", "--name", "Airen", "--title", "Our gathering", "--password-stdin"}, {"create-owner", "--username", "second", "--password-stdin"}} {
+		if err := run(ctx, args, strings.NewReader(password+"\n"), &output); err != nil {
+			t.Fatal(args, err)
+		}
+	}
+	store, err := folkweave.Open(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	for _, username := range []string{"airen", "second"} {
+		u, hash, err := store.Credentials(ctx, username)
+		if err != nil || !u.Owner() || bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) != nil {
+			t.Fatal("owner credentials failed", u, err)
+		}
+	}
+	settings, err := store.Settings(ctx)
+	if err != nil || settings.Title != "Our gathering" {
+		t.Fatal("additional owner changed title", settings, err)
+	}
+	if strings.Contains(output.String(), password) || !strings.Contains(output.String(), "Owner account created.") {
+		t.Fatal("unsafe or missing success output")
+	}
+	if err = run(ctx, []string{"create-owner", "--username", "airen", "--password-stdin"}, strings.NewReader("a-different-password\n"), io.Discard); err == nil {
+		t.Fatal("duplicate command overwrote owner")
+	}
+}
+func TestCreateOwnerHelpAndAdversarialArguments(t *testing.T) {
+	ctx := context.Background()
+	data := filepath.Join(t.TempDir(), "absent")
+	t.Setenv("FOLKWEAVE_DATA_DIR", data)
+	for _, args := range [][]string{{"--help"}, {"create-owner", "--help"}} {
+		var out bytes.Buffer
+		if err := run(ctx, args, strings.NewReader(""), &out); err != nil || !strings.Contains(out.String(), "create-owner") {
+			t.Fatal(args, err, out.String())
+		}
+	}
+	for _, args := range [][]string{{"create-owner", "--username", "bad!", "--password-stdin"}, {"create-owner", "--username", "valid", "--password-stdin"}, {"create-owner", "--username", "valid", "unexpected", "--password-stdin"}, {"create-owner", "--unknown-flag"}, {"create-owner", "--username", "valid"}} {
+		if err := run(ctx, args, strings.NewReader("short\n"), io.Discard); err == nil {
+			t.Fatal("invalid invocation accepted", args)
+		}
+	}
+	if _, err := os.Stat(data); !os.IsNotExist(err) {
+		t.Fatal("help or invalid input created data", err)
 	}
 }

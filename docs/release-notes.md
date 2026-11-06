@@ -1,3 +1,10 @@
+# Unreleased
+
+- Add `folkweave create-owner --username NAME` for first-time setup and additional
+  owner accounts. It preserves existing settings and rejects existing usernames.
+  The `init` command remains available for first-time setup; existing 0.1.0
+  installations can use it immediately.
+
 # Folkweave 0.1.0
 
 The first public release of Folkweave. This is an early release for small,

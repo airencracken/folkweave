@@ -40,11 +40,15 @@ shutdown and only binds to a loopback address.
 ## Start your own gathering
 
 ```sh
-./dist/folkweave init --data ./data --username owner --name "Your name" --title "Our people"
+./dist/folkweave create-owner --data ./data --username owner --name "Your name" --title "Our people"
 ./dist/folkweave serve --data ./data
 ```
 
-The initializer prompts for and confirms a password with terminal echo disabled.
+The owner command prompts for and confirms a password with terminal echo disabled.
+It creates the first owner and gathering together, or adds another owner to an
+existing gathering without changing its settings or other accounts. Existing
+usernames are rejected; use `set-password` for password recovery. The original
+`init` command remains available for first-time initialization only.
 Automation can supply one line through stdin using `--password-stdin`. Passwords
 need at least 12 Unicode characters and at most 72 UTF-8 bytes. Passwords are
 hashed with bcrypt; session and invitation secrets are stored only as digests.
