@@ -8,8 +8,8 @@ Do not serve the data directory from your reverse proxy.
 Configure the public HTTPS origin before inviting members:
 
 ```sh
-FOLKWEAVE_BASE_URL=https://folkweave.example.org
-FOLKWEAVE_TRUSTED_PROXIES=127.0.0.1/32,::1/128
+FOLKWEAVE_BASE_URL="https://folkweave.example.org"
+FOLKWEAVE_TRUSTED_PROXIES="127.0.0.1/32,::1/128"
 ```
 
 Only trust proxies that you control. Examples for Caddy, nginx, and Apache are
@@ -66,3 +66,21 @@ the gathering name only when its settings are first created.
 For the published 0.1.0 binary, use `folkweave init --username NAME` to create the
 first owner. The `init` command remains supported and refuses an already
 initialized gathering. Use `set-password` to reset an existing account's password.
+
+## Configuration format
+
+Use double quotes for every value, including numbers and booleans. No `export`
+prefix is needed in service configuration files:
+
+```sh
+FOLKWEAVE_BASE_URL="https://folkweave.example.org"
+FOLKWEAVE_BACKUP_KEEP="7"
+```
+
+OpenRC reads `/etc/conf.d/folkweave`; systemd reads
+`/etc/folkweave/folkweave.env`. Edit the file for the service manager you run,
+then restart the service. The other manager's file is independent. Existing
+bare or single-quoted values remain valid, and upgrades preserve local settings.
+
+The [shared configuration convention](https://github.com/airencracken/comfylib/blob/master/docs/configuration.md)
+covers quoting, escaping, and how the examples are checked.

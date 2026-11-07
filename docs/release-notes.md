@@ -1,3 +1,14 @@
+# Folkweave 0.2.1
+
+- Standardize shipped service configs and documented environment examples on
+  `KEY="value"`, including numbers, booleans, and empty values.
+- Identify the service manager and installed config path in every template.
+- Check source and generated package configs, literal quoting, and OpenRC
+  environment inheritance during `make check`.
+
+Existing configuration values remain supported and local files are preserved.
+No database migration is introduced.
+
 # Folkweave 0.2.0
 
 - Add browser first-owner setup through `folkweave setup`, with a private host key,

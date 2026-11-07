@@ -1,7 +1,7 @@
 # Run Folkweave with Docker Compose
 
 Published images are at [GHCR](https://github.com/airencracken/folkweave/pkgs/container/folkweave):
-`ghcr.io/airencracken/folkweave:v0.2.0`. The exact version tag contains **linux/amd64**
+`ghcr.io/airencracken/folkweave:v0.2.1`. The exact version tag contains **linux/amd64**
 and **linux/arm64**. Docker selects your host architecture automatically. There
 is no moving `latest` tag; old release tags are not replaced.
 
@@ -9,7 +9,7 @@ Download `docker-compose.yml` from the matching source release. Set the external
 origin in a private `.env` file before starting:
 
 ```sh
-FOLKWEAVE_BASE_URL=https://folkweave.example.org
+FOLKWEAVE_BASE_URL="https://folkweave.example.org"
 ```
 
 Then provision the owner with terminal password prompting, and start the service:
