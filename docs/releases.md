@@ -1,13 +1,17 @@
 # Install Folkweave
 
+For first-run accounts, use [browser or command-line setup](setup.md). Run
+`folkweave setup` for the browser key, or `folkweave create-owner --username NAME`
+for a hidden terminal prompt.
+
 The [GitHub releases](https://github.com/airencracken/folkweave/releases) provide
 versioned Linux amd64 and arm64 archives, Debian packages, a source archive,
-and a SHA-256 checksum manifest. The current release is **0.1.1**.
+and a SHA-256 checksum manifest. The current release is **0.2.0**.
 
 ## Linux archive
 
 Choose your architecture, download the archive and matching checksum manifest,
-and run `sha256sum -c folkweave_0.1.1_checksums.txt --ignore-missing` in that directory.
+and run `sha256sum -c folkweave_0.2.0_checksums.txt --ignore-missing` in that directory.
 Each archive contains the executable, license and dependency notices, README,
 maintained guides, and service/proxy examples under `deploy/`.
 
@@ -18,7 +22,7 @@ create a private data directory and set `FOLKWEAVE_DATA_DIR` explicitly. Run
 ## Debian or Ubuntu
 
 ```sh
-sudo apt install ./folkweave_0.1.1_amd64.deb
+sudo apt install ./folkweave_0.2.0_amd64.deb
 sudo folkweave init --username owner --name "Your name" --title "Our group"
 sudo systemctl enable --now folkweave
 ```
@@ -37,7 +41,7 @@ and systemd units, and offline Go dependencies. Configure `/etc/conf.d/folkweave
 for OpenRC or `/etc/folkweave/folkweave.env` for systemd. Run `folkweave init --username owner --name "Your name" --title "Our group"` as root after
 installation; the administrative command re-executes as the service account.
 
-For OpenRC, initialize the owner before running `rc-service folkweave start`.
+For OpenRC, start the service for browser setup with `rc-service folkweave start`.
 Add the configured service to a runlevel with `rc-update add folkweave default`.
 
 ## Containers and source

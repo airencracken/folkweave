@@ -1,7 +1,7 @@
 # Setting up Folkweave
 
-Source builds with Comfylib v0.1.8 share this first-run flow with the other
-Comfyware apps. Older published packages keep their documented setup commands.
+Folkweave shares its browser setup and account commands with the other
+Comfyware apps.
 
 Configure your service's public HTTPS origin and listener, then choose either
 browser setup or a terminal prompt. Installed commands find the service's data
@@ -29,7 +29,9 @@ sudo folkweave create-owner --username yourname
 sudo folkweave set-password --username yourname
 ```
 
-Both commands prompt twice with echo disabled. Automation may explicitly use
+Both commands accept `--data-dir DIRECTORY` to select a portable instance.
+Without it, they discover the installed service or use the app’s data-directory
+environment variable. Both commands prompt twice with echo disabled. Automation may explicitly use
 `--password-stdin` or `--password-file /private/path/password`; the file must be
 a private regular file. `--password-prompt` remains supported. New passwords
 need at least 12 characters and at most 72 UTF-8 bytes. Existing usernames are
@@ -39,3 +41,7 @@ account's earlier sessions.
 Use `folkweave help setup` or `folkweave setup --help` for command help. Application-specific
 settings and invitations are available after signing in. Existing command names
 remain supported for compatibility.
+
+Future Bubble Tea administration panels should call the same account and
+settings operations as these commands, retaining their validation and session
+revocation rules. Interactive panels supplement the commands used by automation.

@@ -1,3 +1,12 @@
+# Folkweave 0.2.0
+
+- Add browser first-owner setup through `folkweave setup`, with a private host key,
+  confirmed passwords, and setup closing once an owner exists.
+- Align `create-owner` and `set-password` across Comfyware: hidden confirmed input
+  by default, plus `--password-prompt`, `--password-stdin`, `--password-file`,
+  and `--data-dir`. Password changes end earlier signed-in sessions.
+- Use published Comfylib v0.1.8 and retain existing account command aliases.
+
 # Folkweave 0.1.1
 
 - Fix OpenRC configuration inheritance: existing plain assignments now reach the

@@ -50,13 +50,13 @@ weekly logs. Logs and backups may contain private data; protect them.
 
 A normal SIGTERM closes the listener, waits for background work, and closes the
 database. Check `/healthz` for readiness. Do not use process existence as the
-only readiness signal. Provision the first owner before starting the service.
+only readiness signal. Start the service and use browser setup, or create the first owner through the CLI.
 
 See [backup and recovery](automatic-backups.md) and [installation/upgrades](releases.md).
 
 ## Creating owners from the command line
 
-Releases from 0.1.1 accept `folkweave create-owner --username NAME`,
+Releases from 0.2.0 accept `folkweave create-owner --username NAME`,
 using the same hidden password confirmation and service-account re-execution as
 `init`. It initializes a fresh gathering or adds another owner to an existing
 one. Existing usernames are rejected, and existing settings, accounts, and
