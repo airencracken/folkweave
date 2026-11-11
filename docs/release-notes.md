@@ -1,3 +1,24 @@
+# Folkweave 0.3.0
+
+- Add an optional Apps menu and consistent keyboard, focus and account controls.
+- Add explicitly linked community sign-in using OpenID Connect, state, nonce and
+  PKCE. Existing local accounts and passwords remain available; accounts are never
+  created or linked by matching email addresses. Configure this only when wanted.
+- Use published Comfylib v0.2.0 and require Go 1.26.11 or newer for source builds.
+- Upgrade golang.org/x/crypto to v0.59.0 and scan the actual release executables
+  for vulnerable dependencies before publication.
+
+- Serve cached 320, 640 and 960 pixel photograph previews with responsive images
+  and lazy loading. Full-size normalized photos remain available when opened.
+- Bound concurrent preview generation and preserve photo authorization and
+  deletion guarantees. The additive photo_previews table stores derived images.
+
+Read [Suite integration](suite.md) for configuration and security boundaries.
+Back up the stopped data directory before upgrading. Shared sign-in creates an
+additive identity-binding table when configured. Keep the pre-upgrade backup;
+use it when returning to older binaries rather than opening a migrated database
+with an older application. Publishing a release does not change running services.
+
 # Folkweave 0.2.1
 
 - Standardize shipped service configs and documented environment examples on

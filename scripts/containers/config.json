@@ -1,6 +1,6 @@
 {
   "app": "folkweave",
-  "previous": "0.1.0",
+  "previous": "0.2.1",
   "port": 8084,
   "tmp_mb": 128,
   "owner_command": "create-owner"
