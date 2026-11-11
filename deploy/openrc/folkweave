@@ -1,4 +1,5 @@
 #!/sbin/openrc-run
+export FOLKWEAVE_APPS FOLKWEAVE_SHARED_ISSUER FOLKWEAVE_SHARED_CLIENT_ID FOLKWEAVE_SHARED_CLIENT_SECRET
 name="Folkweave"
 description="A private group timeline"
 command="/usr/local/bin/folkweave"

@@ -91,3 +91,8 @@ Smaller originals are never enlarged. Previews are generated on demand, bounded
 to two concurrent requests, cached in SQLite and deleted with their source photo.
 They retain the same authentication requirements as the original. Backups include
 the derived cache.
+
+Native service templates and Compose forward the four optional suite settings.
+For Compose, put them in the project `.env` file or shell environment; for OpenRC
+or systemd, edit the installed service configuration and restart the service.
+All four default to empty, leaving navigation and community sign-in disabled.
