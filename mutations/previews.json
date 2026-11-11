@@ -1,0 +1,10 @@
+[
+  {
+    "name": "derived image bound to existing photo",
+    "file": "internal/folkweave/schema.sql",
+    "before": "photo_id TEXT NOT NULL REFERENCES photos(id) ON DELETE CASCADE",
+    "after": "photo_id TEXT NOT NULL REFERENCES photos(id) ON DELETE SET NULL",
+    "package": "./internal/folkweave",
+    "run": "TestPhotoPreviewDimensionsPrivacyAndDeletion"
+  }
+]

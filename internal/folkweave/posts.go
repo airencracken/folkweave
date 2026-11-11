@@ -28,6 +28,18 @@ type Photo struct {
 
 func (p Photo) URL() string { return "/photos/" + p.ID }
 
+func (p Photo) Srcset() string {
+	var candidates []string
+	for _, width := range []int{320, 640, 960} {
+		if p.Width <= width {
+			candidates = append(candidates, fmt.Sprintf("%s %dw", p.URL(), p.Width))
+			break
+		}
+		candidates = append(candidates, fmt.Sprintf("%s?width=%d %dw", p.URL(), width, width))
+	}
+	return strings.Join(candidates, ", ")
+}
+
 type Reply struct {
 	ID      int64     `json:"id"`
 	Author  User      `json:"author"`

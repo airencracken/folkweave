@@ -179,3 +179,6 @@ licenses, sources, and checksums are recorded in [THIRD_PARTY.md](THIRD_PARTY.md
 New source builds share [browser and command-line setup](docs/setup.md) with the
 other Comfyware apps: `folkweave setup` authorizes the first-owner browser page,
 and `folkweave create-owner --username NAME` prompts privately by default.
+
+Optional app navigation, shared sign-in and discussion returns are described in
+[Comfyware connections](docs/suite.md).

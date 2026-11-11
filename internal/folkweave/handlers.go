@@ -278,15 +278,34 @@ func (a *App) photo(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	photo, err := a.store.Photo(r.Context(), id)
+	var data []byte
+	var err error
+	if values, ok := r.URL.Query()["width"]; ok {
+		width, parseErr := strconv.Atoi(r.URL.Query().Get("width"))
+		if len(values) != 1 || parseErr != nil || width != 320 && width != 640 && width != 960 {
+			http.Error(w, "Choose a supported photo width", http.StatusBadRequest)
+			return
+		}
+		select {
+		case a.uploads <- struct{}{}:
+			defer func() { <-a.uploads }()
+		case <-r.Context().Done():
+			return
+		}
+		data, err = a.store.PhotoPreview(r.Context(), id, width)
+	} else {
+		var photo Photo
+		photo, err = a.store.Photo(r.Context(), id)
+		data = photo.Data
+	}
 	if err != nil {
 		a.fail(w, r, err)
 		return
 	}
 	w.Header().Set("Content-Type", "image/jpeg")
 	w.Header().Set("Content-Disposition", `inline; filename="photo.jpg"`)
-	w.Header().Set("Content-Length", strconv.Itoa(len(photo.Data)))
-	w.Write(photo.Data)
+	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+	w.Write(data)
 }
 func (a *App) savePost(w http.ResponseWriter, r *http.Request) {
 	id, err := routeID(r)

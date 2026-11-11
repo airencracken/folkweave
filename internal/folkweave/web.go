@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/airencracken/folkweave/internal/suite"
 	"html/template"
 	"io/fs"
 	"log/slog"
@@ -26,7 +27,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-//go:embed templates/*.html static/*.css static/app.js static/*.svg static/loom.webp static/favicon-32.png static/*.min.js static/*.LICENSE static/vendor.json
+//go:embed templates/*.html static/*.css static/app.js static/comfy-suite.js static/*.svg static/loom.webp static/favicon-32.png static/*.min.js static/*.LICENSE static/vendor.json
 var assets embed.FS
 
 type Config struct {
@@ -73,6 +74,10 @@ type Page struct {
 }
 
 func NewApp(store *Store, c Config) (*App, error) {
+	suiteFuncs, suiteErr := suite.TemplateFuncs("FOLKWEAVE_")
+	if suiteErr != nil {
+		return nil, suiteErr
+	}
 	u, err := url.Parse(c.BaseURL)
 	if err != nil || u == nil || u.Hostname() == "" || (u.Scheme != "http" && u.Scheme != "https") || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") {
 		return nil, errors.New("base URL must be a complete HTTP or HTTPS origin")
@@ -88,7 +93,7 @@ func NewApp(store *Store, c Config) (*App, error) {
 	}
 	functions := template.FuncMap{"linkify": linkify, "date": func(t time.Time) string { return t.UTC().Format("Jan 2, 2006 · 15:04 UTC") }, "datetime": func(t time.Time) string { return t.UTC().Format(time.RFC3339) }, "canEdit": func(u *User, p Post) bool { return u != nil && u.ID == p.Author.ID }, "canDelete": func(u *User, id int64) bool { return u != nil && (u.Owner() || u.ID == id) }}
 	functions["postContext"] = func(root Page, post Post) Page { root.Post = post; return root }
-	t, err := template.New("pages").Funcs(functions).ParseFS(assets, "templates/*.html")
+	t, err := template.New("pages").Funcs(suiteFuncs).Funcs(functions).ParseFS(assets, "templates/*.html")
 	if err != nil {
 		return nil, err
 	}
@@ -132,6 +137,9 @@ func NewApp(store *Store, c Config) (*App, error) {
 	mux.HandleFunc("GET /api/v1/posts", a.private(a.apiPosts))
 	mux.HandleFunc("GET /api/v1/posts/{id}", a.private(a.apiPost))
 	mux.HandleFunc("GET /api/v1/me", a.private(func(w http.ResponseWriter, r *http.Request) { a.json(w, state(r).User) }))
+	if err = a.registerSharedSignIn(mux); err != nil {
+		return nil, err
+	}
 	a.handler = http.NewCrossOriginProtection().Handler(a.middleware(mux))
 	return a, nil
 }

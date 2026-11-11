@@ -23,9 +23,9 @@ test-race:
 	go test -race ./...
 
 test-mutations:
-	python3 tools/mutate.py --jobs 2 mutations/core.json
+	python3 tools/mutate.py --jobs 2 mutations/core.json mutations/previews.json
 
-check: test-config test-cli
+check: test-suite-assets test-config test-cli
 	python3 -m unittest discover -s scripts/containers -p "test_*.py"
 	python3 scripts/release/test_config.py
 	python3 scripts/test_project.py
@@ -50,3 +50,7 @@ test-cli: build
 .PHONY: test-config
 test-config:
 	python3 scripts/test_service_config.py
+
+.PHONY: test-suite-assets
+test-suite-assets: ## Verify synchronized suite source and assets
+	python3 scripts/verify_suite.py

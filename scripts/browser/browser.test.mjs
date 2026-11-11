@@ -1,3 +1,4 @@
+import { act, checkSuiteControls } from '../browser-controls.mjs';
 import { before, after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -9,7 +10,7 @@ import { chromium } from 'playwright';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 let server, browser, origin;
 before(async () => {
-  server = spawn(process.env.FOLKWEAVE_BINARY || root + 'dist/folkweave', ['demo', '--listen', '127.0.0.1:0'], { env: { ...process.env, FOLKWEAVE_BACKUP_INTERVAL: '0' }, stdio: ['ignore', 'pipe', 'pipe'] });
+  server = spawn(process.env.FOLKWEAVE_BINARY || root + 'dist/folkweave', ['demo', '--listen', '127.0.0.1:0'], { env: { ...process.env, FOLKWEAVE_BACKUP_INTERVAL: '0', FOLKWEAVE_APPS: '[{"id":"witmoot","url":"https://suite.example.org"}]' }, stdio: ['ignore', 'pipe', 'pipe'] });
   let errors = '';
   server.stderr.on('data', data => { errors += data; });
   origin = await new Promise((resolve, reject) => {
@@ -31,9 +32,9 @@ after(async () => { if (browser) await browser.close(); if (server && server.exi
 
 async function signIn(page) {
   await page.goto(origin + '/login');
-  await page.getByLabel('Username', { exact: true }).fill('demo');
-  await page.getByLabel('Password', { exact: true }).fill('folkweave-demo-only');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await act(page.getByLabel('Username', { exact: true }), 'fill', 'demo');
+  await act(page.getByLabel('Password', { exact: true }), 'fill', 'folkweave-demo-only');
+  await act(page.getByRole('button', { name: 'Sign in', exact: true }), 'click');
   await page.waitForURL(origin + '/');
 }
 
@@ -47,10 +48,11 @@ test('mascot and plain account controls work on desktop and mobile', async () =>
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.screenshot({ path: root + `dist/screenshots/login-${width}-${colorScheme}.png`, fullPage: true });
     await signIn(page);
-    await page.getByRole('link', { name: 'Account', exact: true }).click();
+    await checkSuiteControls(page, { apps: true });
+    await act(page.getByRole('link', { name: 'Your account', exact: true }), 'click');
     await page.getByRole('heading', { name: 'Account', exact: true }).waitFor();
     await page.getByRole('heading', { name: 'Export your data', exact: true }).waitFor();
-    await page.getByRole('link', { name: 'Settings', exact: true }).click();
+    await act(page.getByRole('link', { name: 'Settings', exact: true }), 'click');
     await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor();
     await page.getByRole('heading', { name: 'Backups', exact: true }).waitFor();
     assert.equal(await page.getByLabel('Group name', { exact: true }).inputValue(), 'The Sunday Folks');
@@ -73,33 +75,33 @@ for (const javascript of [true, false]) for (const width of [320, 390, 768, 1280
     const response = await context.request.get(origin + source); assert.equal(response.status(), 200);
     const photo = await response.body();
     const text = `A quiet first post ${javascript}-${width}`;
-    await page.locator('#post-body').fill(text);
+    await act(page.locator('#post-body'), 'fill', text);
     if (javascript && width === 320) {
-      await page.locator('#photos').setInputFiles({ name: 'invalid.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('not a photograph') });
-      await page.getByRole('button', { name: 'Share', exact: true }).click();
+      await act(page.locator('#photos'), 'setInputFiles', { name: 'invalid.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('not a photograph') });
+      await act(page.getByRole('button', { name: 'Share', exact: true }), 'click');
       await page.locator('#composer-error [role=alert]').waitFor();
       assert.equal(await page.locator('#post-body').inputValue(), text);
       assert.equal(await page.locator('#photos').evaluate(input => input.files.length), 1);
     }
-    await page.locator('#photos').setInputFiles({ name: 'woodland.jpg', mimeType: 'image/jpeg', buffer: photo });
+    await act(page.locator('#photos'), 'setInputFiles', { name: 'woodland.jpg', mimeType: 'image/jpeg', buffer: photo });
     if (javascript) {
-      await page.locator('.photo-draft input').fill('A woodland path with a pale sky');
+      await act(page.locator('.photo-draft input'), 'fill', 'A woodland path with a pale sky');
       assert.equal(await page.locator('.photo-draft').count(), 1);
-    } else await page.getByLabel('First photo description', { exact: true }).fill('A woodland path with a pale sky');
-    await page.getByRole('button', { name: 'Share', exact: true }).click();
+    } else await act(page.getByLabel('First photo description', { exact: true }), 'fill', 'A woodland path with a pale sky');
+    await act(page.getByRole('button', { name: 'Share', exact: true }), 'click');
     const post = page.locator('#feed .post').filter({ hasText: text });
     await post.waitFor();
     assert.equal(await post.locator('img[alt="A woodland path with a pale sky"]').count(), 1);
     assert.equal(await page.locator('#post-body').inputValue(), '');
-    await post.getByRole('link', { name: 'Reply', exact: true }).click();
-    await page.locator('#reply-body').fill('Good to see this here.');
-    await page.getByRole('button', { name: 'Post reply', exact: true }).click();
+    await act(post.getByRole('link', { name: 'Reply', exact: true }), 'click');
+    await act(page.locator('#reply-body'), 'fill', 'Good to see this here.');
+    await act(page.getByRole('button', { name: 'Post reply', exact: true }), 'click');
     await page.locator('.reply .body-text').filter({ hasText: 'Good to see this here.' }).waitFor();
     assert.equal(await page.locator('#reply-body').inputValue(), '');
     assert.equal(await page.locator('#remove-post').count(), 1, 'reply refresh duplicated post controls');
-    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await act(page.getByRole('button', { name: 'Save', exact: true }), 'click');
     await page.getByRole('button', { name: 'Saved', exact: true }).waitFor();
-    await page.getByRole('link', { name: 'Saved', exact: true }).click();
+    await act(page.getByRole('link', { name: 'Saved', exact: true }), 'click');
     await page.locator('#feed .post').filter({ hasText: text }).waitFor();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
     assert.equal(overflow, false, 'horizontal overflow');
@@ -115,17 +117,17 @@ test('Alpine ordering survives a timeline update without losing the draft', asyn
   const page = await context.newPage(); await signIn(page);
   const src = await page.locator('#feed .photos img').first().getAttribute('src');
   const image = await (await context.request.get(origin + src)).body();
-  await page.locator('#post-body').fill('Do not lose this draft.');
-  await page.locator('#photos').setInputFiles([{ name: 'first.jpg', mimeType: 'image/jpeg', buffer: image }, { name: 'second.jpg', mimeType: 'image/jpeg', buffer: image }]);
-  await page.locator('.photo-draft input').nth(0).fill('First description');
-  await page.locator('.photo-draft input').nth(1).fill('Second description');
-  await page.locator('.photo-draft').nth(1).getByRole('button', { name: 'Earlier', exact: true }).click();
+  await act(page.locator('#post-body'), 'fill', 'Do not lose this draft.');
+  await act(page.locator('#photos'), 'setInputFiles', [{ name: 'first.jpg', mimeType: 'image/jpeg', buffer: image }, { name: 'second.jpg', mimeType: 'image/jpeg', buffer: image }]);
+  await act(page.locator('.photo-draft input').nth(0), 'fill', 'First description');
+  await act(page.locator('.photo-draft input').nth(1), 'fill', 'Second description');
+  await act(page.locator('.photo-draft').nth(1).getByRole('button', { name: 'Earlier', exact: true }), 'click');
   assert.equal(await page.locator('.photo-draft input').nth(0).inputValue(), 'Second description');
   await page.evaluate(() => window.htmx.ajax('GET', '/', { target: '#feed', swap: 'outerHTML' }));
   assert.equal(await page.locator('#post-body').inputValue(), 'Do not lose this draft.');
   assert.equal(await page.locator('#photos').evaluate(input => input.files[0].name), 'second.jpg');
   assert.equal(await page.locator('.photo-draft input').nth(0).inputValue(), 'Second description');
-  await page.getByRole('button', { name: 'Share', exact: true }).click();
+  await act(page.getByRole('button', { name: 'Share', exact: true }), 'click');
   const post = page.locator('#feed .post').filter({ hasText: 'Do not lose this draft.' }); await post.waitFor();
   assert.equal(await post.locator('img').first().getAttribute('alt'), 'Second description');
   await page.screenshot({ path: root + 'dist/screenshots/timeline-desktop.png', fullPage: true });
@@ -134,13 +136,13 @@ test('Alpine ordering survives a timeline update without losing the draft', asyn
 
 test('invitation joins the private gathering without exposing owner controls', async () => {
   const owner = await browser.newContext(); const page = await owner.newPage(); await signIn(page);
-  await page.goto(origin + '/invitations'); await page.getByRole('button', { name: 'Create invitation', exact: true }).click();
+  await page.goto(origin + '/invitations'); await act(page.getByRole('button', { name: 'Create invitation', exact: true }), 'click');
   const invitation = await page.getByLabel('Invitation link', { exact: true }).inputValue();
   const guest = await browser.newContext(); const join = await guest.newPage(); await join.goto(invitation);
-  await join.getByLabel('Your name', { exact: true }).fill('Avery');
-  await join.getByLabel('Username', { exact: true }).fill('avery');
-  await join.getByLabel('Choose a password', { exact: true }).fill('a-private-long-password');
-  await join.getByRole('button', { name: 'Create account', exact: true }).click();
+  await act(join.getByLabel('Your name', { exact: true }), 'fill', 'Avery');
+  await act(join.getByLabel('Username', { exact: true }), 'fill', 'avery');
+  await act(join.getByLabel('Choose a password', { exact: true }), 'fill', 'a-private-long-password');
+  await act(join.getByRole('button', { name: 'Create account', exact: true }), 'click');
   await join.waitForURL(origin + '/'); assert.equal(await join.getByRole('link', { name: 'Invite someone', exact: true }).count(), 0);
   assert.equal((await join.goto(origin + '/invitations')).status(), 403);
   await owner.close(); await guest.close();
@@ -148,8 +150,8 @@ test('invitation joins the private gathering without exposing owner controls', a
 
 test('rapid reply submits issue one request and display one saved reply', async () => {
   const context = await browser.newContext(); const page = await context.newPage(); await signIn(page);
-  await page.locator('#feed .post').first().getByRole('link', { name: /repl/i }).first().click();
-  await page.locator('#reply-body').fill('Only once, even when the connection is slow.');
+  await act(page.locator('#feed .post').first().getByRole('link', { name: /repl/i }).first(), 'click');
+  await act(page.locator('#reply-body'), 'fill', 'Only once, even when the connection is slow.');
   let requests = 0;
   await page.route('**/posts/*/replies', async route => { requests++; const response = await route.fetch(); await new Promise(resolve => setTimeout(resolve, 200)); await route.fulfill({ response }); });
   await page.locator('.reply-form').evaluate(form => { form.requestSubmit(); form.requestSubmit(); });
