@@ -14,6 +14,9 @@ Current release: **[0.2.1](https://github.com/airencracken/folkweave/releases/ta
 
 [Comfyware](https://comfyware.org/) · [Project page](https://comfyware.org/folkweave/) · [Help and bugs](https://github.com/airencracken/folkweave/issues)
 
+Use a current Go security patch when building: Go 1.26.11 or later on the
+1.26 series, or Go 1.27.4 or later on the 1.27 series.
+
 ## Install
 
 Choose a [Linux archive or Debian package](docs/releases.md),
@@ -25,7 +28,7 @@ The source demos below use disposable local data.
 
 ## Try it
 
-Build with Go 1.26 or newer:
+Build with Go 1.26.11 or newer:
 
 ```sh
 make build
