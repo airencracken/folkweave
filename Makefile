@@ -8,7 +8,7 @@ image: build
 	docker build -t folkweave:dev .
 
 test-container: image
-	python3 scripts/containers/lifecycle.py --image folkweave:dev --version development
+	python3 scripts/comfy.py container-lifecycle --image folkweave:dev --version development
 
 test:
 	go test ./...
@@ -23,10 +23,10 @@ test-race:
 	go test -race ./...
 
 test-mutations:
-	python3 tools/mutate.py --jobs 2 mutations/core.json mutations/previews.json
+	python3 scripts/comfy.py mutate --jobs 2 mutations/core.json mutations/previews.json
 
 check: test-suite-assets test-config test-cli
-	python3 -m unittest discover -s scripts/containers -p "test_*.py"
+	python3 scripts/comfy.py test-containers
 	python3 scripts/release/test_config.py
 	python3 scripts/test_project.py
 	go run ./tools/check-format
@@ -38,9 +38,9 @@ demo: build
 
 .PHONY: test-containers test-container-registry
 test-containers:
-	python3 -m unittest discover -s scripts/containers -p 'test_*.py'
+	python3 scripts/comfy.py test-containers
 test-container-registry:
-	python3 scripts/containers/check_registry.py
+	python3 scripts/comfy.py container-registry
 
 .PHONY: test-cli
 test-cli: build
@@ -49,10 +49,10 @@ test-cli: build
 
 .PHONY: test-config
 test-config:
-	python3 scripts/test_service_config.py
+	python3 scripts/comfy.py service-config
 
 .PHONY: test-suite-assets
-test-suite-assets: ## Verify synchronized suite source and assets
-	python3 scripts/verify_suite.py
-	python3 scripts/test_suite_deployment.py
-	python3 scripts/test_release_dispatch.py
+test-suite-assets: ## Verify shared module integration and deployment contracts
+	python3 scripts/comfy.py check
+	python3 scripts/comfy.py suite-deployment
+	python3 scripts/comfy.py release-dispatch
