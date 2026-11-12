@@ -190,5 +190,21 @@
     "after": "a.private(a.post)",
     "package": "./internal/folkweave",
     "run": "^TestActivityCountsAuthorizedOpensAndSuccessfulLogins$"
+  },
+  {
+    "name": "reader timezone reaches native rendering",
+    "file": "internal/folkweave/display_timezone.go",
+    "before": "return displaytime.New(u.Timezone).Name()",
+    "after": "return \"UTC\"",
+    "package": "./internal/folkweave",
+    "run": "^TestDisplayTimezoneAccountRoutesAndRendering$"
+  },
+  {
+    "name": "inactive accounts cannot save display timezones",
+    "file": "internal/folkweave/timezone.go",
+    "before": "AND disabled=0",
+    "after": "AND disabled IN (0,1)",
+    "package": "./internal/folkweave",
+    "run": "^TestDisplayTimezoneAccountRoutesAndRendering$"
   }
 ]

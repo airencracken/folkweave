@@ -208,8 +208,8 @@ func (a *App) createPost(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("HX-Trigger", "folkweave:posted")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(201)
-	a.templates.ExecuteTemplate(w, "composer", p)
-	a.templates.ExecuteTemplate(w, "feed", p)
+	a.templates.ExecuteTemplate(w, preferredTimezone(r), "composer", p)
+	a.templates.ExecuteTemplate(w, preferredTimezone(r), "feed", p)
 }
 func (a *App) postError(w http.ResponseWriter, r *http.Request, body, key, message string) {
 	if r.Header.Get("HX-Request") == "true" {

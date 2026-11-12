@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/airencracken/comfylib/analytics"
+	"github.com/airencracken/comfylib/displaytime"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -40,6 +41,7 @@ type Store struct {
 	Path string
 }
 type User struct {
+	Timezone string `json:"-"`
 	ID       int64  `json:"id"`
 	Username string `json:"username"`
 	Name     string `json:"name"`
@@ -122,6 +124,9 @@ func Open(dataDir string) (*Store, error) {
 	if _, err = db.Exec(schema); err != nil {
 		db.Close()
 		return nil, err
+	}
+	if err := displaytime.Initialize(context.Background(), db); err != nil {
+		return nil, errors.Join(err, db.Close())
 	}
 	if err := analytics.Initialize(context.Background(), db, time.Now()); err != nil {
 		return nil, errors.Join(err, db.Close())

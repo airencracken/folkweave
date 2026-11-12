@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/airencracken/comfylib/admin"
 	"github.com/airencracken/comfylib/analytics"
+	"github.com/airencracken/comfylib/displaytime"
 	"github.com/airencracken/comfylib/ratelimit"
 	"github.com/airencracken/comfylib/suite"
 	"html/template"
@@ -43,7 +44,7 @@ type App struct {
 	config    Config
 	base      *url.URL
 	handler   http.Handler
-	templates *template.Template
+	templates *displaytime.Templates
 	dummyHash []byte
 	resolver  clientip.Resolver
 	limiter   rateLimiter
@@ -62,6 +63,9 @@ func state(r *http.Request) requestState {
 }
 
 type Page struct {
+	TimezoneControl                                                           displaytime.Preference
+	TimezoneInput                                                             *string
+	TimezoneError, TimezoneNotice                                             string
 	Overview                                                                  admin.View
 	View, Title, Error, Body, Username, Name, Bio, Invite, Submission, Notice string
 	Settings                                                                  Settings
@@ -96,13 +100,17 @@ func NewApp(store *Store, c Config) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	functions := template.FuncMap{"adminSummary": admin.Render, "linkify": linkify, "date": func(t time.Time) string { return t.UTC().Format("Jan 2, 2006 · 15:04 UTC") }, "datetime": func(t time.Time) string { return t.UTC().Format(time.RFC3339) }, "canEdit": func(u *User, p Post) bool { return u != nil && u.ID == p.Author.ID }, "canDelete": func(u *User, id int64) bool { return u != nil && (u.Owner() || u.ID == id) }}
+	functions := template.FuncMap{"timezonePreference": displaytime.RenderPreference, "adminSummary": admin.Render, "linkify": linkify, "canEdit": func(u *User, p Post) bool { return u != nil && u.ID == p.Author.ID }, "canDelete": func(u *User, id int64) bool { return u != nil && (u.Owner() || u.ID == id) }}
 	functions["postContext"] = func(root Page, post Post) Page { root.Post = post; return root }
-	t, err := template.New("pages").Funcs(suiteFuncs).Funcs(functions).ParseFS(assets, "templates/*.html")
+	t, err := template.New("pages").Funcs(suiteFuncs).Funcs(functions).Funcs(displaytime.New("UTC").Funcs()).ParseFS(assets, "templates/*.html")
 	if err != nil {
 		return nil, err
 	}
-	a := &App{store: store, config: c, base: u, templates: t, dummyHash: dummy, resolver: clientip.Resolver{Trusted: trusted}, uploads: make(chan struct{}, 2)}
+	bound, err := displaytime.NewTemplates(t, nil)
+	if err != nil {
+		return nil, err
+	}
+	a := &App{store: store, config: c, base: u, templates: bound, dummyHash: dummy, resolver: clientip.Resolver{Trusted: trusted}, uploads: make(chan struct{}, 2)}
 	mux := http.NewServeMux()
 	static, _ := fs.Sub(assets, "static")
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(static))))
@@ -133,6 +141,7 @@ func NewApp(store *Store, c Config) (*App, error) {
 	mux.HandleFunc("POST /people/{id}/status", a.owner(a.memberStatus))
 	mux.HandleFunc("GET /account", a.private(a.account))
 	mux.HandleFunc("POST /account", a.private(a.profile))
+	mux.HandleFunc("POST /account/timezone", a.private(a.saveTimezone))
 	mux.HandleFunc("GET /account/export", a.private(a.exportAccount))
 	mux.HandleFunc("GET /invitations", a.owner(a.invitations))
 	mux.HandleFunc("POST /invitations", a.owner(a.invite))
@@ -181,6 +190,11 @@ func (a *App) middleware(next http.Handler) http.Handler {
 		if c, err := r.Cookie(a.cookieName("session")); err == nil && validToken(c.Value) {
 			u, err := a.store.Session(r.Context(), token.Hash(c.Value))
 			if err == nil {
+				u.Timezone, err = a.store.Timezone(r.Context(), u.ID)
+				if err != nil {
+					a.fail(w, r, err)
+					return
+				}
 				st.User = &u
 				basis = c.Value
 			} else if !errors.Is(err, sql.ErrNoRows) {
@@ -277,6 +291,8 @@ func (a *App) page(r *http.Request, p Page) Page {
 		p.Overview = admin.WithOperations(p.Overview, a.config.Version, a.Backups.Status(), "FOLKWEAVE_")
 	}
 	p.User = state(r).User
+	p.Overview.Timezone = preferredTimezone(r)
+	p.TimezoneControl = timezoneControl(r, p.TimezoneInput, p.TimezoneError, p.TimezoneNotice)
 	p.CSRF = state(r).CSRF
 	if p.Settings.Title == "" {
 		p.Settings, _ = a.store.Settings(r.Context())
@@ -290,7 +306,7 @@ func (a *App) render(w http.ResponseWriter, r *http.Request, status int, p Page)
 	p = a.page(r, p)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
-	if err := a.templates.ExecuteTemplate(w, "layout", p); err != nil {
+	if err := a.templates.ExecuteTemplate(w, preferredTimezone(r), "layout", p); err != nil {
 		slog.Error("render page", "error", err)
 	}
 }
@@ -298,7 +314,7 @@ func (a *App) partial(w http.ResponseWriter, r *http.Request, status int, name s
 	p = a.page(r, p)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
-	if err := a.templates.ExecuteTemplate(w, name, p); err != nil {
+	if err := a.templates.ExecuteTemplate(w, preferredTimezone(r), name, p); err != nil {
 		slog.Error("render fragment", "error", err)
 	}
 }
