@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/airencracken/comfylib/admin"
+	"github.com/airencracken/comfylib/analytics"
 	"github.com/airencracken/comfylib/ratelimit"
 	"github.com/airencracken/comfylib/suite"
 	"html/template"
@@ -119,14 +120,14 @@ func NewApp(store *Store, c Config) (*App, error) {
 	mux.HandleFunc("GET /saved", a.private(a.timeline))
 	mux.HandleFunc("GET /updates", a.private(a.updates))
 	mux.HandleFunc("POST /posts", a.private(a.createPost))
-	mux.HandleFunc("GET /posts/{id}", a.private(a.post))
+	mux.HandleFunc("GET /posts/{id}", a.private(a.trackOpen(analytics.Post, a.post)))
 	mux.HandleFunc("GET /posts/{id}/edit", a.private(a.editForm))
 	mux.HandleFunc("POST /posts/{id}/edit", a.private(a.editPost))
 	mux.HandleFunc("POST /posts/{id}/delete", a.private(a.deletePost))
 	mux.HandleFunc("POST /posts/{id}/save", a.private(a.savePost))
 	mux.HandleFunc("POST /posts/{id}/replies", a.private(a.reply))
 	mux.HandleFunc("POST /replies/{id}/delete", a.private(a.deleteReply))
-	mux.HandleFunc("GET /photos/{id}", a.private(a.photo))
+	mux.HandleFunc("GET /photos/{id}", a.private(a.trackOpen(analytics.Image, a.photo)))
 	mux.HandleFunc("GET /people", a.private(a.people))
 	mux.HandleFunc("GET /people/{id}", a.private(a.person))
 	mux.HandleFunc("POST /people/{id}/status", a.owner(a.memberStatus))
@@ -145,7 +146,7 @@ func NewApp(store *Store, c Config) (*App, error) {
 	if err = a.registerSharedSignIn(mux); err != nil {
 		return nil, err
 	}
-	a.handler = http.NewCrossOriginProtection().Handler(a.middleware(mux))
+	a.handler = http.NewCrossOriginProtection().Handler(a.middleware(analytics.Maintenance(a.store.AnalyticsDB(), mux)))
 	return a, nil
 }
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) { a.handler.ServeHTTP(w, r) }
@@ -273,9 +274,7 @@ func (a *App) redirect(w http.ResponseWriter, r *http.Request, target string) {
 }
 func (a *App) page(r *http.Request, p Page) Page {
 	if state(r).User != nil && state(r).User.Owner() && (p.View == "settings" || p.View == "metrics") {
-		metrics := p.Overview.Metrics
-		p.Overview = admin.WithSuite(admin.Runtime(a.config.Version, a.Backups.Status()), "FOLKWEAVE_")
-		p.Overview.Metrics = metrics
+		p.Overview = admin.WithOperations(p.Overview, a.config.Version, a.Backups.Status(), "FOLKWEAVE_")
 	}
 	p.User = state(r).User
 	p.CSRF = state(r).CSRF

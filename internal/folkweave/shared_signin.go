@@ -24,20 +24,8 @@ func (a *App) registerSharedSignIn(mux *http.ServeMux) error {
 			}
 			return u.ID, binding
 		},
-		CSRF: func(r *http.Request) (string, string) { return "csrf", state(r).CSRF },
-		SignIn: func(w http.ResponseWriter, r *http.Request, id int64) (string, error) {
-			u, err := a.store.User(r.Context(), id)
-			if err != nil || u.Disabled {
-				return "", fmt.Errorf("account unavailable")
-			}
-			raw, err := a.store.NewSession(r.Context(), id)
-			if err != nil {
-				return "", err
-			}
-			a.cookie(w, "session", raw, 7*86400)
-			a.cookie(w, "csrf", token.SessionCSRF(raw, "folkweave-csrf-v1"), 86400)
-			return "/", nil
-		},
+		CSRF:   func(r *http.Request) (string, string) { return "csrf", state(r).CSRF },
+		SignIn: a.sharedSignIn,
 	})
 	if err != nil {
 		return err
@@ -46,4 +34,18 @@ func (a *App) registerSharedSignIn(mux *http.ServeMux) error {
 		auth.Register(mux)
 	}
 	return nil
+}
+
+func (a *App) sharedSignIn(w http.ResponseWriter, r *http.Request, id int64) (string, error) {
+	u, err := a.store.User(r.Context(), id)
+	if err != nil || u.Disabled {
+		return "", fmt.Errorf("account unavailable")
+	}
+	raw, err := a.store.NewSession(r.Context(), id)
+	if err != nil {
+		return "", err
+	}
+	a.cookie(w, "session", raw, 7*86400)
+	a.cookie(w, "csrf", token.SessionCSRF(raw, "folkweave-csrf-v1"), 86400)
+	return "/", nil
 }
