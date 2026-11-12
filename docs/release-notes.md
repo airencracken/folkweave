@@ -1,4 +1,22 @@
-# Folkweave 0.3.1
+# Folkweave releases
+
+## 0.3.2
+
+- Import the suite helpers directly from published Comfylib 0.3.0 and use its
+  embedded styles and browser controls.
+- Replace the local OpenID Connect protocol adapter with the separately versioned
+  Comfylib OIDC module 0.1.0. Existing local session and permission hooks remain
+  application-owned.
+- Run service configuration, deployment, release, artifact scanning, mutation and
+  container checks directly from the pinned shared module. Retain application
+  configuration and both existing backup/restore lifecycle profiles.
+- Add integration tests that verify shared asset routes and exact published bytes.
+
+This maintenance release adds no application database migration or new default
+integration. Back up your data before upgrading. When upgrading from older
+versions, follow the earlier release notes for any migrations you have not run.
+
+## 0.3.1
 
 - Forward optional app navigation and community sign-in settings through OpenRC
   and Docker Compose. Native templates document disabled defaults. Regression
@@ -91,19 +109,3 @@ self-hosted installations; read the current scope and limitations in the README.
 One installation has one shared audience. Parent-managed accounts and parental approval controls remain future work. Original photograph uploads are not retained.
 
 [Installation](releases.md) · [Containers](containers.md) · [Hosting](deployment.md) · [Backups](automatic-backups.md)
-
-## 0.3.2
-
-- Import the suite helpers directly from published Comfylib 0.3.0 and use its
-  embedded styles and browser controls.
-- Replace the local OpenID Connect protocol adapter with the separately versioned
-  Comfylib OIDC module 0.1.0. Existing local session and permission hooks remain
-  application-owned.
-- Run service configuration, deployment, release, artifact scanning, mutation and
-  container checks directly from the pinned shared module. Retain application
-  configuration and both existing backup/restore lifecycle profiles.
-- Add integration tests that verify shared asset routes and exact published bytes.
-
-This maintenance release adds no application database migration or new default
-integration. Back up your data before upgrading. When upgrading from older
-versions, follow the earlier release notes for any migrations you have not run.
