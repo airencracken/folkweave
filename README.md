@@ -8,7 +8,7 @@ Folkweave is a small, self-hosted Comfyware app for friends, family, or another
 group who choose each other. Each installation has its own accounts and
 invite-only membership. Everyone in the gathering can see its earlier posts.
 
-Current release: **[0.3.3](https://github.com/airencracken/folkweave/releases/tag/v0.3.3)**.
+Current release: **[0.3.4](https://github.com/airencracken/folkweave/releases/tag/v0.3.4)**.
 
 <br clear="right">
 
@@ -90,6 +90,12 @@ The first pass has one installation-wide audience. Managed child accounts and
 reviewed child feeds are later work; this build does not provide parental
 approval controls. [Product notes](docs/product.md) describe the intended scope.
 
+## Owner administration
+
+Owners have an **Admin** link in the main navigation. It opens gathering settings
+and backup status. Invitations remain available under **Account**, and membership
+controls are under **People**. Ordinary members cannot open gathering settings.
+
 ## Accounts and recovery
 
 Owners create invitations under **Invite someone**. Links expire after seven
@@ -140,7 +146,7 @@ from **Account**. Credentials and other members' posts are excluded.
 ## Containers
 
 The [Docker Compose guide](docs/containers.md) uses the version-pinned
-`ghcr.io/airencracken/folkweave:v0.3.3` image and a private named volume.
+`ghcr.io/airencracken/folkweave:v0.3.4` image and a private named volume.
 Container port 8080 maps to localhost port 8084. It runs as UID/GID 10001.
 
 ## Development and checks

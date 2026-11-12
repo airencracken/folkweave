@@ -48,6 +48,12 @@ test('mascot and plain account controls work on desktop and mobile', async () =>
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.screenshot({ path: root + `dist/screenshots/login-${width}-${colorScheme}.png`, fullPage: true });
     await signIn(page);
+    const administration = page.getByRole('navigation', { name: 'Main', exact: true }).getByRole('link', { name: 'Admin', exact: true });
+    assert.equal(await administration.isVisible(), true);
+    await act(administration, 'click');
+    await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor();
+    await page.getByRole('heading', { name: 'Backups', exact: true }).waitFor();
+    await page.goto(origin + '/');
     await checkSuiteControls(page, { apps: true });
     await act(page.getByRole('link', { name: 'Your account', exact: true }), 'click');
     await page.getByRole('heading', { name: 'Account', exact: true }).waitFor();
@@ -70,6 +76,11 @@ for (const javascript of [true, false]) for (const width of [320, 390, 768, 1280
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     if (javascript) await page.addInitScript(() => { window.cspViolations = []; document.addEventListener('securitypolicyviolation', event => window.cspViolations.push(event.violatedDirective)); });
     await signIn(page);
+    const adminLink = page.getByRole('navigation', { name: 'Main', exact: true }).getByRole('link', { name: 'Admin', exact: true });
+    assert.equal(await adminLink.isVisible(), true);
+    await act(adminLink, 'click');
+    await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor();
+    await page.goto(origin + '/');
     await page.locator('#feed .post').first().waitFor();
     const source = await page.locator('#feed .photos img').first().getAttribute('src');
     const response = await context.request.get(origin + source); assert.equal(response.status(), 200);
