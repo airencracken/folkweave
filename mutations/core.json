@@ -74,8 +74,8 @@
   {
     "name": "photos require an authenticated member",
     "file": "internal/folkweave/web.go",
-    "before": "mux.HandleFunc(\"GET /photos/{id}\", a.private(a.photo))",
-    "after": "mux.HandleFunc(\"GET /photos/{id}\", a.photo)",
+    "before": "mux.HandleFunc(\"GET /photos/{id}\", a.private(a.trackOpen(analytics.Image, a.photo)))",
+    "after": "mux.HandleFunc(\"GET /photos/{id}\", a.trackOpen(analytics.Image, a.photo))",
     "package": "./internal/folkweave",
     "run": "^TestRoutesPrivacyAndSecurityHeaders$"
   },
