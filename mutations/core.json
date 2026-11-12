@@ -174,5 +174,21 @@
     "after": "a.metrics",
     "package": "./internal/folkweave",
     "run": "^TestOwnerMetricsTotalsPermissionsAndFailure$"
+  },
+  {
+    "name": "successful authentication is recorded",
+    "file": "internal/folkweave/store.go",
+    "before": "analytics.RecordLogin(ctx, tx, analytics.MemberID(userID), time.Now())",
+    "after": "analytics.Prune(ctx, tx, time.Now())",
+    "package": "./internal/folkweave",
+    "run": "^TestActivityCountsAuthorizedOpensAndSuccessfulLogins$"
+  },
+  {
+    "name": "post opens reach the shared collector",
+    "file": "internal/folkweave/web.go",
+    "before": "a.private(a.trackOpen(analytics.Post, a.post))",
+    "after": "a.private(a.post)",
+    "package": "./internal/folkweave",
+    "run": "^TestActivityCountsAuthorizedOpensAndSuccessfulLogins$"
   }
 ]
