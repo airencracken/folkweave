@@ -166,5 +166,13 @@
     "after": ">Hidden administration</a>",
     "package": "./internal/folkweave",
     "run": "^TestOwnerHasVisibleAdminNavigationAndMembersCannotOpenSettings$"
+  },
+  {
+    "name": "instance metrics remain owner-only",
+    "file": "internal/folkweave/web.go",
+    "before": "a.owner(a.metrics)",
+    "after": "a.metrics",
+    "package": "./internal/folkweave",
+    "run": "^TestOwnerMetricsTotalsPermissionsAndFailure$"
   }
 ]

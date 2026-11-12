@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/airencracken/comfylib/admin"
+	"github.com/airencracken/comfylib/ratelimit"
 	"github.com/airencracken/comfylib/suite"
 	"html/template"
 	"io/fs"
@@ -31,6 +33,7 @@ import (
 var assets embed.FS
 
 type Config struct {
+	Version        string
 	BaseURL        string
 	TrustedProxies string
 }
@@ -58,6 +61,7 @@ func state(r *http.Request) requestState {
 }
 
 type Page struct {
+	Overview                                                                  admin.View
 	View, Title, Error, Body, Username, Name, Bio, Invite, Submission, Notice string
 	Settings                                                                  Settings
 	User                                                                      *User
@@ -91,7 +95,7 @@ func NewApp(store *Store, c Config) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	functions := template.FuncMap{"linkify": linkify, "date": func(t time.Time) string { return t.UTC().Format("Jan 2, 2006 · 15:04 UTC") }, "datetime": func(t time.Time) string { return t.UTC().Format(time.RFC3339) }, "canEdit": func(u *User, p Post) bool { return u != nil && u.ID == p.Author.ID }, "canDelete": func(u *User, id int64) bool { return u != nil && (u.Owner() || u.ID == id) }}
+	functions := template.FuncMap{"adminSummary": admin.Render, "linkify": linkify, "date": func(t time.Time) string { return t.UTC().Format("Jan 2, 2006 · 15:04 UTC") }, "datetime": func(t time.Time) string { return t.UTC().Format(time.RFC3339) }, "canEdit": func(u *User, p Post) bool { return u != nil && u.ID == p.Author.ID }, "canDelete": func(u *User, id int64) bool { return u != nil && (u.Owner() || u.ID == id) }}
 	functions["postContext"] = func(root Page, post Post) Page { root.Post = post; return root }
 	t, err := template.New("pages").Funcs(suiteFuncs).Funcs(functions).ParseFS(assets, "templates/*.html")
 	if err != nil {
@@ -132,6 +136,7 @@ func NewApp(store *Store, c Config) (*App, error) {
 	mux.HandleFunc("GET /invitations", a.owner(a.invitations))
 	mux.HandleFunc("POST /invitations", a.owner(a.invite))
 	mux.HandleFunc("POST /invitations/{id}/revoke", a.owner(a.revokeInvite))
+	mux.HandleFunc("GET /admin/metrics", a.owner(a.metrics))
 	mux.HandleFunc("GET /settings", a.owner(a.settings))
 	mux.HandleFunc("POST /settings", a.owner(a.configure))
 	mux.HandleFunc("GET /api/v1/posts", a.private(a.apiPosts))
@@ -267,6 +272,11 @@ func (a *App) redirect(w http.ResponseWriter, r *http.Request, target string) {
 	http.Redirect(w, r, target, http.StatusSeeOther)
 }
 func (a *App) page(r *http.Request, p Page) Page {
+	if state(r).User != nil && state(r).User.Owner() && (p.View == "settings" || p.View == "metrics") {
+		metrics := p.Overview.Metrics
+		p.Overview = admin.WithSuite(admin.Runtime(a.config.Version, a.Backups.Status()), "FOLKWEAVE_")
+		p.Overview.Metrics = metrics
+	}
 	p.User = state(r).User
 	p.CSRF = state(r).CSRF
 	if p.Settings.Title == "" {
@@ -362,37 +372,17 @@ func linkify(value string) template.HTML {
 	return template.HTML(out.String())
 }
 
-type rateRecord struct {
-	Until time.Time
-	Count int
-}
 type rateLimiter struct {
-	mu      sync.Mutex
-	records map[string]rateRecord
+	once   sync.Once
+	shared *ratelimit.Window
 }
 
 func (l *rateLimiter) allow(key string) bool {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	now := time.Now()
-	if l.records == nil {
-		l.records = map[string]rateRecord{}
-	}
-	for key, v := range l.records {
-		if !v.Until.After(now) {
-			delete(l.records, key)
-		}
-	}
-	v, ok := l.records[key]
-	if !ok {
-		if len(l.records) >= 4096 {
-			return false
-		}
-		v.Until = now.Add(15 * time.Minute)
-	}
-	v.Count++
-	l.records[key] = v
-	return v.Count <= 20
+	l.once.Do(func() {
+		l.shared = ratelimit.NewWindow(ratelimit.WindowConfig{Attempts: 20, Interval: 15 * time.Minute, Capacity: 4096, RejectNew: true})
+	})
+	ok, _ := l.shared.Allow(key)
+	return ok
 }
 func (a *App) authAllowed(w http.ResponseWriter, r *http.Request) bool {
 	if state(r).User != nil {

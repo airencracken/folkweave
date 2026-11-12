@@ -24,7 +24,7 @@ import (
 	"github.com/gofrs/flock"
 )
 
-var version = "0.3.4"
+var version = "0.4.0"
 
 var instanceCommands = map[string]bool{"setup": true, "init": true, "create-owner": true, "set-password": true, "backup": true, "restore": true}
 var serviceSettings = []string{"FOLKWEAVE_LISTEN", "FOLKWEAVE_BASE_URL", "FOLKWEAVE_TRUSTED_PROXIES", "FOLKWEAVE_BACKUP_INTERVAL", "FOLKWEAVE_BACKUP_KEEP", "FOLKWEAVE_BACKUP_MAX_BYTES", "FOLKWEAVE_BACKUP_COPY_MAX_BYTES"}
@@ -215,7 +215,7 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 		if *base == "" {
 			*base = "http://" + listener.Addr().String()
 		}
-		app, err := folkweave.NewApp(store, folkweave.Config{BaseURL: *base, TrustedProxies: *trusted})
+		app, err := folkweave.NewApp(store, folkweave.Config{Version: version, BaseURL: *base, TrustedProxies: *trusted})
 		if err != nil {
 			return err
 		}

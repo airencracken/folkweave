@@ -1,3 +1,4 @@
+import { findBrowser, reservePort, spawnServer, stopProcess } from '../browser-runtime.mjs';
 import { act, checkSuiteControls } from '../browser-controls.mjs';
 import { before, after, test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -10,16 +11,9 @@ import { chromium } from 'playwright';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 let server, browser, origin;
 before(async () => {
-  server = spawn(process.env.FOLKWEAVE_BINARY || root + 'dist/folkweave', ['demo', '--listen', '127.0.0.1:0'], { env: { ...process.env, FOLKWEAVE_BACKUP_INTERVAL: '0', FOLKWEAVE_APPS: '[{"id":"witmoot","url":"https://suite.example.org"}]' }, stdio: ['ignore', 'pipe', 'pipe'] });
-  let errors = '';
-  server.stderr.on('data', data => { errors += data; });
-  origin = await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error('Demo startup timed out: ' + errors)), 15000);
-    server.once('error', reject);
-    server.once('exit', code => { clearTimeout(timeout); reject(new Error('Demo exited: ' + code + ' ' + errors)); });
-    server.stdout.on('data', data => { const match = data.toString().match(/listening at (http:\/\/[^\s]+)/); if (match) { clearTimeout(timeout); resolve(match[1]); } });
-  });
-  browser = await chromium.launch({ executablePath: process.env.CHROMIUM || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined), headless: true, args: ['--no-sandbox'] });
+  const port=await reservePort();origin='http://127.0.0.1:'+port;
+  server=await spawnServer(process.env.FOLKWEAVE_BINARY || root+'dist/folkweave',['demo','--listen','127.0.0.1:'+port],{env:{...process.env,FOLKWEAVE_BACKUP_INTERVAL:'0',FOLKWEAVE_APPS:'[{"id":"witmoot","url":"https://suite.example.org"}]'},health:origin+'/healthz'});
+  browser = await chromium.launch({ executablePath: await findBrowser({ required: true }), headless: true, args: ['--no-sandbox'] });
   await mkdir(root + 'dist/screenshots', { recursive: true });
   const preview = await browser.newContext({ viewport: {width:1280,height:1100} });
   const page = await preview.newPage(); await signIn(page);
@@ -28,7 +22,7 @@ before(async () => {
   await page.screenshot({path:root+'dist/screenshots/first-pass-mobile.png'});
   await preview.close();
 });
-after(async () => { if (browser) await browser.close(); if (server && server.exitCode === null) { const done = new Promise(resolve => server.once('exit', resolve)); server.kill('SIGTERM'); await done; } });
+after(async () => { if (browser) await browser.close(); await stopProcess(server); });
 
 async function signIn(page) {
   await page.goto(origin + '/login');

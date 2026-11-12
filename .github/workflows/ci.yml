@@ -27,9 +27,6 @@ jobs:
           cache: npm
           cache-dependency-path: scripts/browser/package-lock.json
       - run: make check test-race test-mutations
-      - run: npm ci --prefix scripts/browser
-      - run: cd scripts/browser && npx playwright install --with-deps chromium
-      - run: make test-browser
       - run: make test-container
       - uses: actions/upload-artifact@v4
         if: always()

@@ -17,6 +17,14 @@ Current release: **[0.3.4](https://github.com/airencracken/folkweave/releases/ta
 Use a current Go security patch when building: Go 1.26.11 or later on the
 1.26 series, or Go 1.27.4 or later on the 1.27 series.
 
+## Folkweave 0.4.0
+
+Native owner/admin metrics now show aggregate membership, content, storage and recent activity, with owner-only operational summaries for backups and configured suite connections. The pages work without JavaScript and follow the application's existing permissions.
+
+Rate limiting uses the bounded shared implementations while retaining the app's own budgets. Release preparation, artifact verification, browser fixtures and immutable CI workflows use Comfylib 0.4.1 directly. A release preflight verifies version metadata, cold module caches and the exact shared workflow revision before publication.
+
+No application database migration is added. Existing service configuration and account permissions remain supported.
+
 ## Install
 
 Choose a [Linux archive or Debian package](docs/releases.md),
