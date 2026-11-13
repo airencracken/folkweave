@@ -74,8 +74,8 @@
   {
     "name": "photos require an authenticated member",
     "file": "internal/folkweave/web.go",
-    "before": "mux.HandleFunc(\"GET /photos/{id}\", a.private(a.trackOpen(analytics.Image, a.photo)))",
-    "after": "mux.HandleFunc(\"GET /photos/{id}\", a.trackOpen(analytics.Image, a.photo))",
+    "before": "mux.HandleFunc(\"GET /photos/{id}\", a.private(a.photo))",
+    "after": "mux.HandleFunc(\"GET /photos/{id}\", a.photo)",
     "package": "./internal/folkweave",
     "run": "^TestRoutesPrivacyAndSecurityHeaders$"
   },
@@ -176,22 +176,6 @@
     "run": "^TestOwnerMetricsTotalsPermissionsAndFailure$"
   },
   {
-    "name": "successful authentication is recorded",
-    "file": "internal/folkweave/store.go",
-    "before": "analytics.RecordLogin(ctx, tx, analytics.MemberID(userID), time.Now())",
-    "after": "analytics.Prune(ctx, tx, time.Now())",
-    "package": "./internal/folkweave",
-    "run": "^TestActivityCountsAuthorizedOpensAndSuccessfulLogins$"
-  },
-  {
-    "name": "post opens reach the shared collector",
-    "file": "internal/folkweave/web.go",
-    "before": "a.private(a.trackOpen(analytics.Post, a.post))",
-    "after": "a.private(a.post)",
-    "package": "./internal/folkweave",
-    "run": "^TestActivityCountsAuthorizedOpensAndSuccessfulLogins$"
-  },
-  {
     "name": "reader timezone reaches native rendering",
     "file": "internal/folkweave/display_timezone.go",
     "before": "return displaytime.New(u.Timezone).Name()",
@@ -206,5 +190,29 @@
     "after": "AND disabled IN (0,1)",
     "package": "./internal/folkweave",
     "run": "^TestDisplayTimezoneAccountRoutesAndRendering$"
+  },
+  {
+    "name": "startup removes legacy per-account activity",
+    "file": "internal/folkweave/retire_activity.go",
+    "before": "\"DROP TABLE IF EXISTS \"+table",
+    "after": "\"SELECT 1 WHERE ''<>?\", table",
+    "package": "./internal/folkweave",
+    "run": "^TestOpenRemovesStoredPerAccountAndPerItemActivity$"
+  },
+  {
+    "name": "removed activity is overwritten on disk",
+    "file": "internal/folkweave/retire_activity.go",
+    "before": "\"PRAGMA secure_delete=ON\"",
+    "after": "\"PRAGMA secure_delete=OFF\"",
+    "package": "./internal/folkweave",
+    "run": "^TestOpenRemovesStoredPerAccountAndPerItemActivity$"
+  },
+  {
+    "name": "open invitations exclude revoked ones",
+    "file": "internal/folkweave/metrics.go",
+    "before": "FROM invitations WHERE revoked=0 AND",
+    "after": "FROM invitations WHERE revoked IN (0,1) AND",
+    "package": "./internal/folkweave",
+    "run": "^TestOpenInvitationMetricCountsOnlyRedeemableInvitations$"
   }
 ]

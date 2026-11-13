@@ -6,7 +6,6 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"github.com/airencracken/comfylib/analytics"
 	"github.com/airencracken/comfylib/displaytime"
 	"net/url"
 	"os"
@@ -128,7 +127,7 @@ func Open(dataDir string) (*Store, error) {
 	if err := displaytime.Initialize(context.Background(), db); err != nil {
 		return nil, errors.Join(err, db.Close())
 	}
-	if err := analytics.Initialize(context.Background(), db, time.Now()); err != nil {
+	if err := retireActivity(context.Background(), db); err != nil {
 		return nil, errors.Join(err, db.Close())
 	}
 	return &Store{db: db, Path: path}, nil
@@ -363,9 +362,6 @@ func (s *Store) NewSession(ctx context.Context, userID int64) (string, error) {
 	}
 	_, err = tx.ExecContext(ctx, "INSERT INTO sessions VALUES(?,?,?)", hash, userID, time.Now().Add(7*24*time.Hour).UnixMilli())
 	if err != nil {
-		return "", err
-	}
-	if err := analytics.RecordLogin(ctx, tx, analytics.MemberID(userID), time.Now()); err != nil {
 		return "", err
 	}
 	return secret, tx.Commit()

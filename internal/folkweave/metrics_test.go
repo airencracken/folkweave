@@ -15,7 +15,7 @@ func TestOwnerMetricsTotalsPermissionsAndFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 	metrics, err := s.Metrics(t.Context(), time.Now())
-	if err != nil || len(metrics) < 6 || metrics[0].Value != 2 || metrics[1].Value != 1 {
+	if err != nil || len(metrics) < 6 || metrics[0].Value != 2 || metrics[3].Value != 1 {
 		t.Fatal(metrics, err)
 	}
 	for _, path := range []string{"/admin/metrics", "/admin/metrics?role=owner&owner=true"} {
