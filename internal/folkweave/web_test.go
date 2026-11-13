@@ -152,7 +152,7 @@ func TestAccountAndSettingsNavigation(t *testing.T) {
 			}
 		}
 	}
-	w := c.form(t, "/settings", url.Values{"title": {"Our group"}, "about": {"Keep shared photos private."}}, false)
+	w := c.form(t, "/settings", url.Values{"title": {"Our group"}, "about": {"Keep shared photos private."}, "palette": {"sage"}}, false)
 	if w.Code != 303 {
 		t.Fatal("settings save failed", w.Code, w.Body.String())
 	}

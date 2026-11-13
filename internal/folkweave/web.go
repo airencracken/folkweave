@@ -31,7 +31,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-//go:embed templates/*.html static/*.css static/app.js static/theme.js static/*.svg static/loom.webp static/favicon-32.png static/*.min.js static/*.LICENSE static/vendor.json
+//go:embed templates/*.html static/*.css static/app.js static/*.svg static/loom.webp static/favicon-32.png static/*.min.js static/*.LICENSE static/vendor.json
 var assets embed.FS
 
 type Config struct {
@@ -81,7 +81,15 @@ type Page struct {
 	Author                                                                    int64
 	InviteURL                                                                 string
 	Backup                                                                    autobackup.Status
+	SitePalette                                                               ui.Palette
+	PaletteAttrs                                                              template.HTMLAttr
 }
+
+// Palettes lists the shared palettes for the owner's site colors setting.
+func (Page) Palettes() []ui.Palette { return ui.Palettes() }
+
+// defaultPalette is Folkweave's site palette until an owner picks another.
+const defaultPalette = ui.Sage
 
 func NewApp(store *Store, c Config) (*App, error) {
 	suiteFuncs, suiteErr := suite.TemplateFuncs("FOLKWEAVE_")
@@ -101,7 +109,7 @@ func NewApp(store *Store, c Config) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	functions := template.FuncMap{"timezonePreference": displaytime.RenderPreference, "adminSummary": admin.Render, "linkify": linkify, "canEdit": func(u *User, p Post) bool { return u != nil && u.ID == p.Author.ID }, "canDelete": func(u *User, id int64) bool { return u != nil && (u.Owner() || u.ID == id) }}
+	functions := template.FuncMap{"themePicker": ui.ThemePicker, "timezonePreference": displaytime.RenderPreference, "adminSummary": admin.Render, "linkify": linkify, "canEdit": func(u *User, p Post) bool { return u != nil && u.ID == p.Author.ID }, "canDelete": func(u *User, id int64) bool { return u != nil && (u.Owner() || u.ID == id) }}
 	functions["postContext"] = func(root Page, post Post) Page { root.Post = post; return root }
 	t, err := template.New("pages").Funcs(suiteFuncs).Funcs(functions).Funcs(displaytime.New("UTC").Funcs()).ParseFS(assets, "templates/*.html")
 	if err != nil {
@@ -310,6 +318,8 @@ func (a *App) page(r *http.Request, p Page) Page {
 	if p.Settings.Title == "" {
 		p.Settings, _ = a.store.Settings(r.Context())
 	}
+	p.SitePalette = ui.SiteDefault(p.Settings.Palette, defaultPalette)
+	p.PaletteAttrs = ui.PaletteAttrs(p.SitePalette)
 	if p.Submission == "" {
 		p.Submission, _ = token.New()
 	}

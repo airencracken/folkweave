@@ -35,7 +35,7 @@ func TestEachDestinationHasOneHome(t *testing.T) {
 				t.Fatal(path, "footer repeats navigation", link)
 			}
 		}
-		if !strings.Contains(menu, `data-theme-select`) {
+		if !strings.Contains(menu, `data-theme-select`) || !strings.Contains(menu, `data-palette-select`) {
 			t.Fatal(path, "theme picker missing from the Account menu")
 		}
 		admin := path == "/settings" || path == "/invitations" || path == "/admin/metrics"
@@ -86,24 +86,31 @@ func TestSignedOutPagesOfferThemeWithoutAccountMenu(t *testing.T) {
 		t.Fatal("signed-out header")
 	}
 	head := body[:strings.Index(body, "</head>")]
-	theme, css := strings.Index(head, `/static/theme.js"></script>`), strings.Index(head, `rel="stylesheet"`)
+	theme, css := strings.Index(head, `/static/comfyware/theme.js"></script>`), strings.Index(head, `rel="stylesheet"`)
 	if theme < 0 || theme > css || strings.Contains(head, `theme.js" defer`) {
 		t.Fatal("theme script must run before styles to avoid a flash")
 	}
-	if strings.Index(head, "/static/app.css") < strings.Index(head, "/static/comfyware/components.css") {
-		t.Fatal("app styles must load after shared styles")
+	components, app, palettes := strings.Index(head, "/static/comfyware/components.css"), strings.Index(head, "/static/app.css"), strings.Index(head, "/static/comfyware/palettes.css")
+	if !(components < app && app < palettes) {
+		t.Fatal("load order must be shared styles, app styles, then palettes")
+	}
+	if !strings.Contains(body, `data-theme-key="folkweave-theme"`) || !strings.Contains(body, `data-palette="sage"`) || !strings.Contains(body, `data-palettes="sage slate"`) {
+		t.Fatal("html element lacks theme key or site palette")
+	}
+	if strings.Contains(body, "data-palette-select") {
+		t.Fatal("signed-out header offers only the light and dark choice")
 	}
 }
 
 func TestStaticThemeAndStyleAssets(t *testing.T) {
 	_, _, guest := webFixture(t)
-	for path, want := range map[string]string{"/static/theme.js": "data-theme", "/static/app.css": "--gold"} {
+	for path, want := range map[string]string{"/static/comfyware/theme.js": "data-theme", "/static/comfyware/palettes.css": "sage", "/static/app.css": "--gold"} {
 		w := guest.request("GET", path, nil, nil)
 		if w.Code != 200 || !strings.Contains(w.Body.String(), want) {
 			t.Fatal(path, w.Code)
 		}
 	}
-	if w := guest.request("GET", "/static/theme.test.cjs", nil, nil); w.Code != 404 {
-		t.Fatal("test script served", w.Code)
+	if w := guest.request("GET", "/static/theme.js", nil, nil); w.Code != 404 {
+		t.Fatal("app-local theme script still served", w.Code)
 	}
 }

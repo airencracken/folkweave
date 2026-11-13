@@ -28,7 +28,7 @@ func TestStylesheetUsesTokensAndOneRulePerLine(t *testing.T) {
 		t.Fatal("focus gold should use --gold")
 	}
 	sizes := map[int]bool{}
-	for _, m := range regexp.MustCompile(`--text-[a-z0-9]+: (\d+)px`).FindAllStringSubmatch(css, -1) {
+	for _, m := range regexp.MustCompile(`--(?:comfy-)?text-[a-z0-9]+: (\d+)px`).FindAllStringSubmatch(css, -1) {
 		n, _ := strconv.Atoi(m[1])
 		sizes[n] = true
 		if n < 13 {
@@ -67,7 +67,12 @@ func TestStylesheetUsesTokensAndOneRulePerLine(t *testing.T) {
 			seen[selector] = number + 1
 		}
 	}
-	for _, required := range []string{":root[data-theme=\"dark\"]", ":root[data-theme=\"light\"]", "--comfy-radius", "--comfy-ink", "--serif", "min-height: 44px"} {
+	for _, legacy := range []string{"--bg:", "--paper:", "--panel:", "--ink:", "--muted:", "--green:", "--line:", "--border:", "--accent:", "--danger:", "--radius:", "--comfy-ink", "--comfy-panel", "--comfy-line"} {
+		if strings.Contains(css, legacy) {
+			t.Fatal("old variable defined; colors come from --comfy-* tokens", legacy)
+		}
+	}
+	for _, required := range []string{"--comfy-radius:", "--comfy-radius-small:", "--comfy-text-base:", "--comfy-font:", "--comfy-heading-font", "--serif", "min-height: 44px"} {
 		if !strings.Contains(css, required) {
 			t.Fatal("missing", required)
 		}

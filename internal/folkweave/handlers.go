@@ -514,7 +514,7 @@ func (a *App) settings(w http.ResponseWriter, r *http.Request) {
 	a.render(w, r, 200, Page{View: "settings", Title: "Settings", Backup: a.Backups.Status()})
 }
 func (a *App) configure(w http.ResponseWriter, r *http.Request) {
-	if err := a.store.Configure(r.Context(), state(r).User.ID, r.PostForm.Get("title"), r.PostForm.Get("about")); err != nil {
+	if err := a.store.Configure(r.Context(), state(r).User.ID, r.PostForm.Get("title"), r.PostForm.Get("about"), r.PostForm.Get("palette")); err != nil {
 		a.fail(w, r, err)
 		return
 	}

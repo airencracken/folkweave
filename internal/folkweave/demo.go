@@ -20,7 +20,7 @@ func SeedDemo(ctx context.Context, s *Store) error {
 	if err = s.Bootstrap(ctx, "demo", hash, "Ari", "The Sunday Folks"); err != nil {
 		return err
 	}
-	if err = s.Configure(ctx, 1, "The Sunday Folks", "A place for the everyday things. Put the kettle on and stay a while."); err != nil {
+	if err = s.Configure(ctx, 1, "The Sunday Folks", "A place for the everyday things. Put the kettle on and stay a while.", string(defaultPalette)); err != nil {
 		return err
 	}
 	invite, err := s.NewInvitation(ctx, 1, 2)

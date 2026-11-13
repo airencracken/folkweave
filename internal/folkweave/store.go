@@ -20,6 +20,7 @@ import (
 	"github.com/airencracken/comfylib/invitation"
 	"github.com/airencracken/comfylib/memberprofile"
 	"github.com/airencracken/comfylib/token"
+	"github.com/airencracken/comfylib/ui"
 	"golang.org/x/crypto/bcrypt"
 	_ "modernc.org/sqlite"
 )
@@ -58,7 +59,9 @@ func (u User) Initial() string {
 	return "?"
 }
 
-type Settings struct{ Title, About string }
+// Settings are the group's details. Palette is the owner's site palette; empty
+// means Folkweave's default.
+type Settings struct{ Title, About, Palette string }
 type Invitation struct {
 	ID            int64
 	Expires       time.Time
@@ -126,6 +129,9 @@ func Open(dataDir string) (*Store, error) {
 		return nil, err
 	}
 	if err := displaytime.Initialize(context.Background(), db); err != nil {
+		return nil, errors.Join(err, db.Close())
+	}
+	if err := addSettingsPalette(context.Background(), db); err != nil {
 		return nil, errors.Join(err, db.Close())
 	}
 	if err := retireActivity(context.Background(), db); err != nil {
@@ -246,7 +252,7 @@ func (s *Store) Credentials(ctx context.Context, username string) (User, string,
 }
 func (s *Store) Settings(ctx context.Context) (Settings, error) {
 	var v Settings
-	err := s.db.QueryRowContext(ctx, "SELECT title,about FROM settings WHERE id=1").Scan(&v.Title, &v.About)
+	err := s.db.QueryRowContext(ctx, "SELECT title,about,palette FROM settings WHERE id=1").Scan(&v.Title, &v.About, &v.Palette)
 	return v, err
 }
 func requireUser(ctx context.Context, tx *sql.Tx, id int64, owner bool) error {
@@ -455,10 +461,14 @@ func (s *Store) SetDisabled(ctx context.Context, actor, id int64, disabled bool)
 	}
 	return tx.Commit()
 }
-func (s *Store) Configure(ctx context.Context, actor int64, title, about string) error {
+func (s *Store) Configure(ctx context.Context, actor int64, title, about, palette string) error {
 	title = strings.TrimSpace(title)
 	about = strings.TrimSpace(about)
 	if title == "" || !validText(title, 100, false) || !validText(about, 2000, true) {
+		return ErrInvalid
+	}
+	chosen, err := ui.ParsePalette(palette)
+	if err != nil {
 		return ErrInvalid
 	}
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -469,7 +479,7 @@ func (s *Store) Configure(ctx context.Context, actor int64, title, about string)
 	if err = requireUser(ctx, tx, actor, true); err != nil {
 		return err
 	}
-	_, err = tx.ExecContext(ctx, "UPDATE settings SET title=?,about=? WHERE id=1", title, about)
+	_, err = tx.ExecContext(ctx, "UPDATE settings SET title=?,about=?,palette=? WHERE id=1", title, about, string(chosen))
 	if err != nil {
 		return err
 	}
@@ -553,4 +563,18 @@ func (s *Store) Check(ctx context.Context) error {
 		return errors.New("unsupported database schema")
 	}
 	return nil
+}
+
+// addSettingsPalette adds the owner's site palette column to databases made
+// before 0.7.0. Empty means Folkweave's default palette.
+func addSettingsPalette(ctx context.Context, db *sql.DB) error {
+	var present int
+	if err := db.QueryRowContext(ctx, "SELECT count(*) FROM pragma_table_info('settings') WHERE name='palette'").Scan(&present); err != nil {
+		return err
+	}
+	if present != 0 {
+		return nil
+	}
+	_, err := db.ExecContext(ctx, "ALTER TABLE settings ADD COLUMN palette TEXT NOT NULL DEFAULT ''")
+	return err
 }
