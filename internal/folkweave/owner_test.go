@@ -21,7 +21,7 @@ func ownerHash(t *testing.T) string {
 	}
 	return string(hash)
 }
-func TestCreateOwnerPreservesExistingGathering(t *testing.T) {
+func TestCreateOwnerPreservesExistingGroup(t *testing.T) {
 	s := testStore(t)
 	hash := ownerHash(t)
 	memberID := testMember(t, s, "member")
@@ -64,7 +64,7 @@ func TestCreateOwnerPreservesExistingGathering(t *testing.T) {
 		t.Fatal("existing session revoked", err)
 	}
 	if err = s.Bootstrap(testContext, "third", hash, "Third", "Other title"); !errors.Is(err, ErrConflict) {
-		t.Fatal("init overwrote existing gathering", err)
+		t.Fatal("init overwrote existing group", err)
 	}
 	if err = s.Check(testContext); err != nil {
 		t.Fatal(err)
@@ -80,7 +80,7 @@ func TestCreateFirstOwnerAndSettingsAreAtomic(t *testing.T) {
 	if _, err = s.db.Exec("CREATE TRIGGER fail_settings BEFORE INSERT ON settings BEGIN SELECT RAISE(ABORT,'injected settings failure');END"); err != nil {
 		t.Fatal(err)
 	}
-	if err = s.CreateOwner(testContext, "first", hash, "First Owner", "Our gathering"); err == nil {
+	if err = s.CreateOwner(testContext, "first", hash, "First Owner", "Our group"); err == nil {
 		t.Fatal("failure not injected")
 	}
 	var n int
@@ -91,11 +91,11 @@ func TestCreateFirstOwnerAndSettingsAreAtomic(t *testing.T) {
 		t.Fatal("failed initializer reports ready")
 	}
 	s.db.Exec("DROP TRIGGER fail_settings")
-	if err = s.CreateOwner(testContext, "first", hash, "First Owner", "Our gathering"); err != nil {
+	if err = s.CreateOwner(testContext, "first", hash, "First Owner", "Our group"); err != nil {
 		t.Fatal(err)
 	}
 	settings, err := s.Settings(testContext)
-	if err != nil || settings.Title != "Our gathering" || !s.Ready(testContext) {
+	if err != nil || settings.Title != "Our group" || !s.Ready(testContext) {
 		t.Fatal(settings, err)
 	}
 }

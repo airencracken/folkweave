@@ -120,12 +120,12 @@
     "run": "^TestMultipartPhotoRoutesAndFailedDraft$"
   },
   {
-    "name": "new owners keep gathering settings",
+    "name": "new owners keep group settings",
     "file": "internal/folkweave/store.go",
     "before": "INSERT INTO settings(id,title) VALUES(1,?) ON CONFLICT(id) DO NOTHING",
     "after": "INSERT INTO settings(id,title) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title",
     "package": "./internal/folkweave",
-    "run": "^TestCreateOwnerPreservesExistingGathering$"
+    "run": "^TestCreateOwnerPreservesExistingGroup$"
   },
   {
     "name": "new accounts receive owner permissions",
@@ -133,7 +133,7 @@
     "before": "INSERT INTO users(username,password_hash,name,role,created_at) VALUES(?,?,?,'owner',?) ON CONFLICT(username) DO NOTHING",
     "after": "INSERT INTO users(username,password_hash,name,role,created_at) VALUES(?,?,?,'member',?) ON CONFLICT(username) DO NOTHING",
     "package": "./internal/folkweave",
-    "run": "^TestCreateOwnerPreservesExistingGathering$"
+    "run": "^TestCreateOwnerPreservesExistingGroup$"
   },
   {
     "name": "owner provisioning rolls back when settings fail",

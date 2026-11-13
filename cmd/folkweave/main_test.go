@@ -36,7 +36,7 @@ func TestInitBackupRestoreLifecycle(t *testing.T) {
 	}
 	store.Close()
 	if err = run(ctx, []string{"init", "--data", data, "--username", "other", "--password-stdin"}, strings.NewReader(password+"\n"), &output); err == nil {
-		t.Fatal("initialization overwrote gathering")
+		t.Fatal("initialization overwrote group")
 	}
 	snapshot := filepath.Join(root, "snapshot")
 	if err = run(ctx, []string{"backup", "--data", data, "--output", snapshot}, strings.NewReader(""), &output); err != nil {
@@ -156,7 +156,7 @@ func TestCreateOwnerCommand(t *testing.T) {
 	if !instanceCommands["create-owner"] {
 		t.Fatal("create-owner bypasses service-account re-execution and root-write protection")
 	}
-	for _, args := range [][]string{{"create-owner", "--username", "airen", "--name", "Airen", "--title", "Our gathering", "--password-stdin"}, {"create-owner", "--username", "second", "--password-stdin"}} {
+	for _, args := range [][]string{{"create-owner", "--username", "airen", "--name", "Airen", "--title", "Our group", "--password-stdin"}, {"create-owner", "--username", "second", "--password-stdin"}} {
 		if err := run(ctx, args, strings.NewReader(password+"\n"), &output); err != nil {
 			t.Fatal(args, err)
 		}
@@ -173,7 +173,7 @@ func TestCreateOwnerCommand(t *testing.T) {
 		}
 	}
 	settings, err := store.Settings(ctx)
-	if err != nil || settings.Title != "Our gathering" {
+	if err != nil || settings.Title != "Our group" {
 		t.Fatal("additional owner changed title", settings, err)
 	}
 	if strings.Contains(output.String(), password) || !strings.Contains(output.String(), "Owner account created.") {
@@ -200,5 +200,56 @@ func TestCreateOwnerHelpAndAdversarialArguments(t *testing.T) {
 	}
 	if _, err := os.Stat(data); !os.IsNotExist(err) {
 		t.Fatal("help or invalid input created data", err)
+	}
+}
+
+func TestHelpDocumentsDataDirAndHidesLegacyAliases(t *testing.T) {
+	ctx := context.Background()
+	t.Setenv("FOLKWEAVE_DATA_DIR", filepath.Join(t.TempDir(), "absent"))
+	var top bytes.Buffer
+	if err := run(ctx, []string{"help"}, strings.NewReader(""), &top); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(top.String(), "init") || !strings.Contains(top.String(), "create-owner") {
+		t.Fatal("top-level help", top.String())
+	}
+	for _, command := range []string{"setup", "create-owner", "set-password", "serve", "demo", "backup", "restore", "init"} {
+		var out bytes.Buffer
+		if err := run(ctx, []string{command, "--help"}, strings.NewReader(""), &out); err != nil {
+			t.Fatal(command, err)
+		}
+		help := out.String()
+		if !strings.Contains(help, "--data-dir") || strings.Contains(help, "--data ") || strings.Contains(help, "compatibility") || strings.Contains(help, "gathering") {
+			t.Fatal(command, "help", help)
+		}
+	}
+}
+
+func TestLegacyAliasesStillWork(t *testing.T) {
+	ctx := context.Background()
+	root := t.TempDir()
+	password := "a-private-test-password"
+	legacy, current := filepath.Join(root, "legacy"), filepath.Join(root, "current")
+	if err := run(ctx, []string{"init", "--data", legacy, "--username", "owner", "--password-stdin"}, strings.NewReader(password+"\n"), io.Discard); err != nil {
+		t.Fatal("init with --data", err)
+	}
+	var out bytes.Buffer
+	if err := run(ctx, []string{"create-owner", "--data-dir", current, "--username", "owner", "--password-stdin"}, strings.NewReader(password+"\n"), &out); err != nil {
+		t.Fatal(err)
+	}
+	for _, dir := range []string{legacy, current} {
+		store, err := folkweave.Open(dir)
+		if err != nil || !store.Ready(ctx) {
+			t.Fatal(dir, err)
+		}
+		store.Close()
+	}
+	// The last of --data and --data-dir wins, as with any repeated flag.
+	other := filepath.Join(root, "other")
+	if err := run(ctx, []string{"create-owner", "--data-dir", legacy, "--data", other, "--username", "second", "--password-stdin"}, strings.NewReader(password+"\n"), io.Discard); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(other, "folkweave.db")); err != nil {
+		t.Fatal("alias order", err)
 	}
 }

@@ -60,7 +60,7 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 		return errors.New("usage: folkweave help [COMMAND]")
 	}
 	if len(args) == 0 || args[0] == "help" || args[0] == "--help" {
-		fmt.Fprintln(out, "Folkweave — a private timeline for your people.\n\nCommands: setup, create-owner, init, serve, demo, backup, restore, set-password, version\nUse COMMAND --help for options.")
+		fmt.Fprintln(out, "Folkweave — a private timeline for your people.\n\nCommands: setup, create-owner, serve, demo, backup, restore, set-password, version\nUse COMMAND --help for options.")
 		return nil
 	}
 	if args[0] == "version" || args[0] == "--version" {
@@ -95,8 +95,10 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 	}
 	f := flag.NewFlagSet(command, flag.ContinueOnError)
 	f.SetOutput(out)
-	data := f.String("data", dataDefault, "private data directory (compatibility alias for --data-dir)")
-	f.StringVar(data, "data-dir", dataDefault, "private data directory")
+	data := f.String("data-dir", dataDefault, "private data directory")
+	// --data is an undocumented alias kept for existing scripts.
+	f.StringVar(data, "data", dataDefault, "")
+	f.Usage = func() { usage(f, command) }
 	switch command {
 	case "setup":
 		if err := f.Parse(args[1:]); err != nil {
@@ -118,7 +120,7 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 	case "init", "create-owner", "set-password":
 		username := f.String("username", "", "owner's username")
 		name := f.String("name", "", "owner's display name")
-		title := f.String("title", "Our people", "name of the gathering when creating its first owner")
+		title := f.String("title", "Our people", "group name, used only when creating the first owner")
 		source := password.Flags(f)
 		if err := f.Parse(args[1:]); err != nil {
 			return helpError(err)
@@ -163,7 +165,7 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 		if command == "create-owner" {
 			fmt.Fprintln(out, "Owner account created.")
 		} else {
-			fmt.Fprintln(out, "Your gathering is ready. Start it with: folkweave serve --data", *data)
+			fmt.Fprintln(out, "Your group is ready. Start it with: folkweave serve --data-dir", *data)
 		}
 		return nil
 	case "serve", "demo":
@@ -280,7 +282,7 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 		}
 		defer store.Close()
 		if !store.Ready(ctx) {
-			return errors.New("the source is not an initialized gathering")
+			return errors.New("the source is not an initialized Folkweave group")
 		}
 		if err = store.Snapshot(ctx, *destination, *limit); err != nil {
 			return err
@@ -300,6 +302,29 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 		return fmt.Errorf("unknown command %q", command)
 	}
 }
+
+// hiddenFlags stay accepted but are left out of help output.
+var hiddenFlags = map[string]bool{"data": true}
+
+func usage(f *flag.FlagSet, command string) {
+	out := f.Output()
+	fmt.Fprintf(out, "Usage: folkweave %s [options]\n\nOptions:\n", command)
+	f.VisitAll(func(option *flag.Flag) {
+		if hiddenFlags[option.Name] {
+			return
+		}
+		name, help := flag.UnquoteUsage(option)
+		if name != "" {
+			name = " " + name
+		}
+		fmt.Fprintf(out, "  --%s%s\n    \t%s", option.Name, name, help)
+		if option.DefValue != "" && option.DefValue != "false" {
+			fmt.Fprintf(out, " (default %q)", option.DefValue)
+		}
+		fmt.Fprintln(out)
+	})
+}
+
 func helpError(err error) error {
 	if errors.Is(err, flag.ErrHelp) {
 		return nil
@@ -370,7 +395,7 @@ func restore(ctx context.Context, source, destination string, out io.Writer) err
 		os.Remove(abs)
 		return err
 	}
-	fmt.Fprintln(out, "Restored gathering:", abs)
+	fmt.Fprintln(out, "Restored group:", abs)
 	return nil
 }
 

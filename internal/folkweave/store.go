@@ -166,13 +166,13 @@ func HashPassword(password string) (string, error) {
 	return string(b), err
 }
 
-// Bootstrap initializes a new gathering and refuses any existing accounts.
+// Bootstrap initializes a new group and refuses any existing accounts.
 func (s *Store) Bootstrap(ctx context.Context, username, hash, name, title string) error {
 	return s.provisionOwner(ctx, username, hash, name, title, true)
 }
 
 // CreateOwner provisions a new owner without changing existing accounts or
-// gathering settings. The first account and settings are created atomically.
+// group settings. The first account and settings are created atomically.
 func (s *Store) CreateOwner(ctx context.Context, username, hash, name, title string) error {
 	return s.provisionOwner(ctx, username, hash, name, title, false)
 }
