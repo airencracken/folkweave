@@ -118,7 +118,7 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 		}
 		return wizard.Enable(ctx, out)
 	case "init", "create-owner", "set-password":
-		username := f.String("username", "", "owner's username")
+		username := f.String("username", "", "account username")
 		name := f.String("name", "", "owner's display name")
 		title := f.String("title", "Our people", "group name, used only when creating the first owner")
 		source := password.Flags(f)

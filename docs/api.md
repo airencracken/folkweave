@@ -1,32 +1,29 @@
 # HTTP API
 
-The first pass provides a versioned, session-authenticated read API. Sign in
-through the normal browser flow. Every API response is private and `no-store`.
-Unauthenticated requests return 401. Errors use a plain-text response.
+A read-only JSON API for signed-in members. Sign in through the browser first;
+the API uses the same session. Requests without a session get 401. Errors are
+plain text, and no response is cached.
 
 | Method | Route | Result |
 | --- | --- | --- |
-| GET | `/api/v1/me` | Current member profile |
-| GET | `/api/v1/posts` | Newest posts; up to 20 |
-| GET | `/api/v1/posts?before=CURSOR` | Next anchored page |
-| GET | `/api/v1/posts/ID` | A post and up to 500 chronological replies |
-| GET | `/photos/ID` | Session-protected normalized JPEG |
-| GET | `/account/export` | Current member's ZIP archive |
+| GET | `/api/v1/me` | Your member profile |
+| GET | `/api/v1/posts` | Up to 20 newest posts |
+| GET | `/api/v1/posts?before=CURSOR` | The next page |
+| GET | `/api/v1/posts/ID` | A post and up to 500 replies, oldest first |
+| GET | `/photos/ID` | A photo as JPEG |
+| GET | `/account/export` | Your ZIP archive |
 
-The list response has exactly `posts` (array), `next` (opaque string, empty at
-the end), and `anchor` (nonnegative integer). Do not construct cursor values.
+A list response has `posts` (array), `next` (cursor string, empty on the last
+page), and `anchor` (integer). Use `next` as given; do not build cursors.
 
-Post fields: `id`, `author`, `body`, `created_at`, `edited`, `revision`,
-`photos`, `reply_count`, and `saved`. The detail response may additionally
-include `replies`. Timestamps are RFC3339. A photo has `id`, `alt`, `width`, and
-`height`; fetch it through `/photos/ID`. An author has `id`, `username`, `name`,
+A post has `id`, `author`, `body`, `created_at`, `edited`, `revision`,
+`photos`, `reply_count`, and `saved`. The single-post response adds `replies`.
+Timestamps are RFC 3339 in UTC. A photo has `id`, `alt`, `width`, and `height`;
+fetch its bytes from `/photos/ID`. An author has `id`, `username`, `name`,
 `bio`, and `role`. A reply has `id`, `author`, `body`, and `created_at`.
 
-`saved` is private to the requesting member. Password hashes, session secrets,
-invitation tokens, submission keys, and photo bytes are never in these JSON
-responses. Account exports contain only that member's own posts, photographs,
-and replies; they are not a community archive.
+`saved` shows only your own saved state. Responses never include password
+hashes, session or invitation secrets, or photo bytes. An export holds only
+your own posts, photos, and replies.
 
-Browser forms own writes in this pass. They require CSRF tokens and current
-membership. Post and reply forms carry a unique submission key, and retries
-with that key and the original content resolve to the existing write.
+Writes go through the browser forms.

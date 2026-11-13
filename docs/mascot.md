@@ -1,19 +1,17 @@
 # Folkweave's loom
 
 A small wooden loom with a woven sage, cream, and terracotta panel, a shuttle,
-simple round eyes, and a smile. No eyebrows. The mascot appears in the header
-and sign-in screen; a small PNG supplies the favicon. Settings and account
-controls use plain names rather than characterful metaphors.
+round eyes, and a smile, with no eyebrows. It appears in the header and on the
+sign-in page, and a small PNG is the favicon.
 
-Generated with the built-in imagegen tool on 2026-11-05. Imvault's keeper was
-the primary shape and outline reference; the Comfyware robot supplied the palette
-and restrained shading reference. These were style references, not edit targets.
+It was made with the built-in imagegen tool on 2026-11-05, using Imvault's
+keeper for shape and outline and the Comfyware robot for palette and shading.
 
-- Original, preserved unchanged: `design/mascot/loom-original.png`.
-- Embedded application asset: `internal/folkweave/static/loom.webp`, 256 × 256.
+- Original: `design/mascot/loom-original.png`, kept unchanged.
+- App image: `internal/folkweave/static/loom.webp`, 256 × 256, under 25,000 bytes.
 - Favicon: `internal/folkweave/static/favicon-32.png`, 32 × 32.
-- All retain genuine alpha transparency. Tests enforce dimensions, transparent
-  margins, and a 25,000-byte application image budget.
+
+All three have transparent backgrounds.
 
 ## Derivatives
 

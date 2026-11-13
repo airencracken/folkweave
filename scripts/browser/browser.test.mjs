@@ -139,7 +139,7 @@ test('theme picker applies before paint, persists, and survives blocked storage'
   assert.equal(painted[0], 'dark', 'saved theme applied before the body rendered');
   assert.equal(await background(), dark);
   await page.goto(origin + '/admin/metrics');
-  assert.equal(await page.locator('.comfy-admin-section').first().evaluate(element => getComputedStyle(element).backgroundColor), await page.locator('main').evaluate(() => getComputedStyle(document.querySelector('.site-header')).backgroundColor), 'metrics panels use the Folkweave paper colour');
+  assert.equal(await page.locator('.comfy-admin-section').first().evaluate(element => getComputedStyle(element).backgroundColor), await page.locator('main').evaluate(() => getComputedStyle(document.querySelector('.site-header')).backgroundColor), 'metrics panels use the Folkweave paper color');
   await context.close();
   const blocked = await browser.newContext({ colorScheme: 'dark' });
   await blocked.addInitScript(() => { Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('blocked', 'SecurityError'); } }); });

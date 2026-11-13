@@ -1,37 +1,47 @@
 # Backups and recovery
 
-The running service makes a verified, consistent SQLite snapshot automatically
-every day, beginning about a minute after startup. The database includes all
-instance data and normalized shared photographs. Automatic archives are retained under the private data directory.
-Defaults: seven copies, 10 GiB total retained bytes, and a 5 GiB uncompressed
-snapshot limit. zstd is preferred when installed; built-in gzip is the fallback.
-Restoring a zstd archive requires the `zstd` program.
+The server backs up every day, starting about a minute after it starts. Each
+backup is a verified copy of the SQLite database, which holds everything,
+photos included. Backups are compressed archives in `backups/` inside the data
+directory. Owners see the latest result under **Admin**, on Settings and
+Metrics; details of a failure are in the server log.
 
-The `FOLKWEAVE_BACKUP_INTERVAL`, `FOLKWEAVE_BACKUP_KEEP`,
-`FOLKWEAVE_BACKUP_MAX_BYTES`, and `FOLKWEAVE_BACKUP_COPY_MAX_BYTES` settings control
-these limits. Setting the interval to `0` disables automatic backups. Owners
-can inspect backup success or failure from the settings/account interface.
+| Setting | Default |
+| --- | --- |
+| `FOLKWEAVE_BACKUP_INTERVAL` | `24h`; `0` turns automatic backups off |
+| `FOLKWEAVE_BACKUP_KEEP` | `7` archives |
+| `FOLKWEAVE_BACKUP_MAX_BYTES` | `10737418240` (10 GiB) for all archives |
+| `FOLKWEAVE_BACKUP_COPY_MAX_BYTES` | `5368709120` (5 GiB) per uncompressed copy |
 
-A manual verified backup can run while the server is active:
+Archives use zstd when it is installed and gzip otherwise. Restoring a zstd
+archive needs the `zstd` program.
+
+## Back up by hand
+
+This works while the server runs and creates a new directory holding
+`folkweave.db`:
 
 ```sh
 folkweave backup --output /var/lib/folkweave/manual-snapshot
 ```
 
-This creates a new directory containing folkweave.db. To restore an automatic compressed archive, unpack it privately and select its folkweave.db file.
+## Restore
 
-Stop the service before switching to a restored instance. Restore refuses an
-existing destination and validates the snapshot before exposing restored data:
+Restore into a new directory; `restore` refuses one that exists and checks the
+copy first. For an automatic archive, unpack it somewhere private and use the
+`folkweave.db` inside.
 
 ```sh
-folkweave restore --from /private/snapshot/folkweave.db --data /private/folkweave-restored
+folkweave restore --from /private/snapshot/folkweave.db --data-dir /private/folkweave-restored
 ```
 
-Run the command as the service account, point your configuration at the restored
-private directory, and start the service. Confirm sign-in and your content before
-removing the old copy. Keep protected snapshots on another machine and practice
-restoring them. Backups contain credentials, sessions and private contributions.
-A member's personal data export is not a complete instance backup.
+Run it as the service account. Stop the service, point `FOLKWEAVE_DATA_DIR` at
+the restored directory, and start it again. Check that you can sign in and see
+your posts before you delete the old copy.
 
-Do not copy only a live SQLite database file while its WAL journal is active.
-A stopped-service copy of the complete private data directory is an alternative.
+Keep copies on another machine and practice restoring them. Backups hold
+password hashes, sessions, and every member's posts, so protect them. A
+member's export is not a backup of the group.
+
+Do not copy only the live database file while the server runs. Use `backup`,
+or copy the whole data directory with the service stopped.

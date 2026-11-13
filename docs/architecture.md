@@ -1,58 +1,54 @@
 # Architecture
 
-One Go process serves embedded templates, styles, and pinned JavaScript. SQLite
-stores accounts, sessions, invitations, posts, replies, photographs, and personal
-bookmarks. The service has a single database connection and a process lock for
-its data directory. Transactions own multi-row writes and invitation redemption.
+One Go process serves the pages, styles, and bundled JavaScript. SQLite holds
+accounts, sessions, invitations, posts, replies, photos, and saved posts. The
+server uses one database connection and locks its data directory so a second
+server cannot open it. Multi-row writes run in transactions.
 
-## Browser responsibilities
+## Browser
 
-HTMX submits ordinary forms and replaces server-rendered fragments. Alpine's CSP
-build owns local composer state: selected files, preview URLs, descriptions,
-ordering, and unsaved-change prompts. Application components live in external
-JavaScript, and all browser assets are served locally. CSP permits neither
-`unsafe-eval` nor inline scripts.
+HTMX submits ordinary forms and swaps in server-rendered fragments. Alpine's
+CSP build runs the composer: selected files, previews, descriptions, order,
+and the unsaved-changes prompt. All scripts are local files, and the Content
+Security Policy allows no inline scripts or `eval`.
 
-The composer remains outside timeline swaps. A failed submission replaces only
-its error message, preserving text and selected files. A successful submission
-returns a fresh composer and an out-of-band timeline update. A reply returns
-the complete updated discussion. Synchronization drops repeated in-flight
-submits; persistent submission keys prevent a duplicate write when a response
-is lost. Receipts remain after content removal to prevent stale retries from
-recreating deleted posts or replies.
+The composer stays outside timeline swaps. A failed post replaces only the
+error message and keeps the text and files. A successful post returns a fresh
+composer and updates the timeline. A reply returns the whole discussion.
+Repeated clicks send one request, and each form carries a submission key so a
+retry after a lost response does not post twice. Keys outlive deleted posts,
+so a late retry cannot bring one back.
 
-Ordinary links and POST/redirect/GET provide the JavaScript-disabled path.
-Native forms cannot retain a file selection after a full error response; the
-error asks the member to reselect files while retaining their text.
+Without JavaScript, links and POST-redirect-GET forms do the same work. A
+browser cannot keep a file selection after a full-page error, so the page asks
+the member to choose the photos again and keeps their text.
+
+`theme.js` runs before the stylesheets and sets `data-theme` from browser
+storage, so a saved theme shows on first paint.
 
 ## Membership and privacy
 
-All content, profile, API, export, and media routes require a current session.
-Sessions are looked up on every request and immediately fail after suspension
-or revocation. Writes also recheck membership inside their transaction.
-The initial installation has one invited audience. Photograph bytes never have
-a public static path. Foreign keys remove photographs, replies, and bookmarks
-with a deleted post.
+Every content, profile, API, export, and photo route needs a current session.
+The server checks the session on each request, so suspension takes effect at
+once, and writes recheck membership inside their transaction. Photos have no
+public file path. Deleting a post deletes its photos, replies, and saves.
 
-CSRF tokens are derived from a session or an anonymous HttpOnly form cookie
-using comfylib. Mutating requests require the body token and pass Go's
-cross-origin protection. Authentication has a bounded per-network attempt
-limiter, with trusted proxy handling delegated to comfylib. Private responses
-are `no-store`, have a no-referrer policy, and disable HTMX local history caches.
+CSRF tokens come from the session, or from a private form cookie before sign-in.
+Every POST needs the token and passes Go's cross-origin check. Sign-in attempts
+are rate limited per network. Private pages send `no-store` and
+`no-referrer`, and HTMX keeps no history cache.
 
-## History and storage
+## Storage
 
-Timeline pagination uses a descending immutable post ID and a fixed page
-anchor. Cursor values are validated and bound as SQL parameters. Concurrent
-inserts do not shift older pages; edits and replies do not move a post.
+Pages of the timeline are anchored to post IDs, so new posts do not shift older
+pages, and edits and replies do not move a post.
 
-Photos are bounded before decode, normalized and oriented in memory, and
-inserted in the same transaction as their post. Only two multipart upload
-requests may parse or normalize concurrently. Shared copies discard metadata
-and originals. Filesystem snapshots use a consistent SQLite `VACUUM INTO`
-while retaining the database connection, enforce a byte cap, and run an
-integrity check. comfylib supplies automatic archive compression and retention.
+Uploads are size-checked before decoding, then resized, rotated, and saved in
+the same transaction as their post. At most two uploads are processed at once.
+Folkweave keeps only the resized copy without metadata. Backups use SQLite
+`VACUUM INTO` with a size cap and an integrity check.
 
-comfylib also supplies invitation status, tokens, shared account/invitation
-styles, profile validation, password prompting, and trusted client addresses.
-Folkweave owns membership policy, routes, schemas, and social behavior.
+Comfylib provides invitation tokens and status, shared account and invitation
+styles, profile checks, password prompts, client address handling, and backup
+compression and retention. Folkweave owns membership rules, routes, the schema,
+and everything social.

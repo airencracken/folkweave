@@ -1,67 +1,63 @@
 # Install Folkweave
 
-For first-run accounts, use [browser or command-line setup](setup.md). Run
-`folkweave setup` for the browser key, or `folkweave create-owner --username NAME`
-for a hidden terminal prompt.
+[GitHub releases](https://github.com/airencracken/folkweave/releases) have
+Linux amd64 and arm64 archives, Debian packages, a source archive, and a
+SHA-256 checksum file. The current release is **0.6.0**.
 
-The [GitHub releases](https://github.com/airencracken/folkweave/releases) provide
-versioned Linux amd64 and arm64 archives, Debian packages, a source archive,
-and a SHA-256 checksum manifest. The current release is **0.6.0**.
+After installing, create the first owner with [setup](setup.md).
 
 ## Linux archive
 
-Choose your architecture, download the archive and matching checksum manifest,
-and run `sha256sum -c folkweave_0.6.0_checksums.txt --ignore-missing` in that directory.
-Each archive contains the executable, license and dependency notices, README,
-maintained guides, and service/proxy examples under `deploy/`.
+Download the archive for your architecture and the checksum file, then check
+them in that directory:
 
-Run the executable as an unprivileged account. For an archive installation,
-create a private data directory and set `FOLKWEAVE_DATA_DIR` explicitly. Run
-`folkweave --help` for commands, and `folkweave --version` to check the installed build.
+```sh
+sha256sum -c folkweave_0.6.0_checksums.txt --ignore-missing
+```
+
+The archive holds the program, licenses, the README, these guides, and service
+and proxy examples in `deploy/`. Run Folkweave as an unprivileged account with
+a private data directory, and set `FOLKWEAVE_DATA_DIR` to it.
 
 ## Debian or Ubuntu
 
 ```sh
 sudo apt install ./folkweave_0.6.0_amd64.deb
-sudo folkweave init --username owner --name "Your name" --title "Our group"
+sudo folkweave create-owner --username owner --name "Your name" --title "Our group"
 sudo systemctl enable --now folkweave
 ```
 
-Use the arm64 package on an arm64 host. The package creates a dedicated service
-account and a mode-0700 `/var/lib/folkweave`. Configuration lives in the mode-0600
-`/etc/folkweave/folkweave.env`. Installation does not start or enable a fresh service.
-An upgrade restarts an already-running service. Existing configuration and all
-application data survive removal and purge.
+Use the arm64 package on arm64. The package creates a `folkweave` service
+account, a private `/var/lib/folkweave`, and `/etc/folkweave/folkweave.env`.
+It does not start a new install. An upgrade restarts a running service.
+Removing or purging the package keeps your configuration and data.
 
 ## Gentoo
 
 Add the [Comfyware overlay](https://github.com/airencracken/comfyware#add-the-overlay)
-and install `www-apps/folkweave`. The overlay includes the service account, OpenRC
-and systemd units, and offline Go dependencies. Configure `/etc/conf.d/folkweave`
-for OpenRC or `/etc/folkweave/folkweave.env` for systemd. Run `folkweave init --username owner --name "Your name" --title "Our group"` as root after
-installation; the administrative command re-executes as the service account.
+and install `www-apps/folkweave`. Configure `/etc/conf.d/folkweave` (OpenRC)
+or `/etc/folkweave/folkweave.env` (systemd), then create the owner:
 
-For OpenRC, start the service for browser setup with `rc-service folkweave start`.
-Add the configured service to a runlevel with `rc-update add folkweave default`.
+```sh
+sudo folkweave create-owner --username owner --name "Your name" --title "Our group"
+rc-service folkweave start
+rc-update add folkweave default
+```
 
 ## Containers and source
 
-The [container guide](containers.md) covers pinned multi-platform images and
-Docker Compose. Source builds require Go 1.26.11 or newer; `make build` resolves
-only the modules pinned in `go.mod` and `go.sum`. There is no frontend build.
+See [Docker Compose](containers.md). Source builds need Go 1.26.11 or later
+and use only the modules pinned in `go.sum`; there is no frontend build step.
 
-## Upgrades
+## Upgrade
 
-Back up before replacing a binary or package. Stop the service, install the new
-version, and start it again. Startup applies schema changes. Never open a newer
-database with an older binary; restore a pre-upgrade snapshot into a new private
-directory when rolling back. Keep exact package/image version pins.
+Back up, stop the service, install the new version, and start it. Startup
+upgrades the database. An older version cannot open an upgraded database, so to
+roll back, restore your pre-upgrade backup into a new directory. Read the
+[release notes](release-notes.md) first.
 
-## Rebuild an existing release tag
+## Rebuild a release
 
-Maintainers can dispatch the Release workflow on `master` with `release_tag` set
-to an existing version tag. The workflow validates the tag, exact commit, VERSION
-where present, and reachability from master. It uses Go 1.26.11 and runs the full
-native, package and container gates against that tag. Container revision labels
-identify the checked-out source commit. Published releases and image tags remain
-immutable; reruns may finish an unpublished draft.
+Maintainers can run the Release workflow on `master` with `release_tag` set to
+an existing tag. It checks that the tag is on `master`, rebuilds, and runs the
+full checks. Published releases and image tags are never replaced.

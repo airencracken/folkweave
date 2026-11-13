@@ -1,43 +1,52 @@
 # Folkweave
 
-A private timeline for a group of people who choose each other. A short thought,
-a longer update, photographs, and links all fit the same post. A gathering can
-be a family, friends, or another small community.
+A private timeline for a group of people who choose each other: a family,
+friends, or another small community. A short thought, a longer update, photos,
+and links all fit in one post.
 
-Each installation is its own place. The host invites members and explains the
-audience and house rules. New members can see the existing gathering history;
-the invitation and join screens state that before membership begins.
+Each installation is its own place. The owner invites members and explains who
+is in the group and what the house rules are. New members can see the group's
+earlier posts, and the invitation and join pages say so before they join.
 
-## The first pass
+## What is built
 
-Join through an invitation, choose a name, share text or photographs, reply,
-and return to earlier posts. Each post has a stable address. The timeline is
-newest-first; replying and editing preserve its position. Older posts use
-explicit pages. Incoming posts wait behind a button while the reader stays put.
+Members join through an invitation, choose a name, post text or photos, reply,
+and come back to earlier posts. Each post has a stable address. The timeline is
+newest first. Replies and edits keep a post in place. **Older posts** loads
+the next page. New posts wait behind a button so the page does not jump.
 
-Bookmarks are personal. Member profiles identify the people speaking. Owners
-can close invitations, suspend membership, and remove content; authors can edit
-their words and remove their own posts or replies. Suspensions revoke sessions.
+Saved posts are personal. Profiles show who is speaking. Owners can close
+invitations, suspend members, and remove posts and replies. Authors can edit
+and remove their own. Suspending a member ends their sessions.
 
-The initial photo store is part of SQLite. The app works independently of
-Imvault, Witmoot, and Songstead. Future sharing between apps should be deliberate
-and retain clear audience boundaries.
+Photos are stored in the SQLite database. Folkweave runs on its own, without
+Imvault, Witmoot, or Songstead.
+
+## What the owner can see
+
+The Metrics page is for checking that the installation is healthy. It shows
+totals counted from the data Folkweave already holds when the page opens:
+members, suspended members, open invitations, posts, replies, photos, photo
+storage, new posts in the past seven days, and database size. It also shows the
+running version, backup status, and which optional connections are set up.
+
+Folkweave does not record sign-ins, page views, or who opened which post or
+photo, and it never ranks members or posts. The server log holds errors and
+rejected requests.
 
 ## Family controls
 
-Managed membership and reviewed viewing are separate product decisions.
-Guardian-managed accounts could control joining and outgoing posts. Reviewed
-viewing would require approval of each visible post, reply, photo, and edited
-revision. Neither is implemented in this pass. The ordinary invited-member view
-must not be described as a reviewed or parent-approved feed.
+Not built. Parent-managed accounts could control joining and outgoing posts.
+Reviewed viewing would need approval of every visible post, reply, photo, and
+edit. Until both exist, do not describe the ordinary member view as a reviewed
+or parent-approved feed.
 
 ## Attention and ownership
 
-Chronological pages have an end. The app is not federated and does not introduce
-follower networks, boosts, ranking, or engagement targets. Members choose when
-to visit. Content and exports stay portable. The service makes practical,
-verified backups and gives members an archive of their own contributions.
+The timeline has an end. Folkweave is not federated and has no followers,
+boosts, ranking, or engagement targets. Members choose when to visit. Members
+can export their own contributions, and the server makes verified backups.
 
-Useful next iterations include a reader-chosen saved place, fuller account
-self-service, content reporting, reviewed audiences, and explicit links to the
-other Comfyware apps. Each needs its own permission and lifecycle decisions.
+Possible next steps: a saved reading position, more account self-service,
+reporting posts, reviewed audiences, and links to the other Comfyware apps.
+Each needs its own decisions about permissions and lifecycle.
