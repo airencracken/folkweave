@@ -4,24 +4,33 @@ Back up the stopped data directory before every upgrade, and keep that copy
 until you are sure you will not go back. An older Folkweave cannot open a
 database that a newer one has upgraded.
 
-## Unreleased
+## 0.7.0
 
 - Owners reach everything from **Admin**: Settings, Invitations, and Metrics.
-  The **Account** menu holds your account, the theme, and Sign out.
-- Choose a System, Light, or Dark theme from the **Account** menu.
+  The **Account** menu holds your account, the theme, colors, and Sign out.
+- Choose System, Light, or Dark, and a color palette, from the **Account**
+  menu. Owners set the site colors under **Admin**, in Settings. Sage is the
+  default.
 - **Times and dates** has its own panel on the Account page.
 - Posts no longer repeat "Everyone here" under each one.
-- Error messages use plain words. Size limits read 5 MB.
+- Error pages and messages use plain words.
+- The invitation link has a Copy link button.
+- Metrics shows site health: requests, errors, response times, and data sent
+  for each kind of page, plus failed sign-ins, rate-limited attempts, and
+  rejected invitation links. Folkweave no longer records who signed in or who
+  opened which post or photo.
 - Admin pages use Folkweave's colors, type, and corners.
-- Metrics shows health totals only. Folkweave no longer records sign-ins or
-  which posts and photos people open.
 
 ### For operators
 
-- Startup deletes the sign-in and view records kept by 0.5.0 and 0.6.0.
+- Startup deletes the sign-in and view records kept by 0.5.0 and 0.6.0, adds
+  tables for site health counts, and adds a site palette setting. Back up first.
+- Photo uploads are limited to 5,000,000 bytes, down from 5 MiB (5,242,880).
+- API errors are JSON with `status` and `error`, instead of plain text.
 - Owners see a short backup summary. The full error is in the server log.
 - Help lists `--data-dir`. `--data` and `init` still work but are no longer
   listed.
+- Built with Comfylib 0.7.0.
 
 ## 0.6.0
 
