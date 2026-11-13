@@ -13,7 +13,9 @@ import (
 	"strings"
 
 	"github.com/airencracken/comfylib/analytics"
+	passwords "github.com/airencracken/comfylib/password"
 	"github.com/airencracken/comfylib/token"
+	"github.com/airencracken/comfylib/ui"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -38,7 +40,7 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 		hash = string(a.dummyHash)
 	}
 	match := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	if err != nil || match != nil || len(password) > 72 || u.Disabled {
+	if err != nil || match != nil || !passwords.Fits(password) || u.Disabled {
 		a.countSecurity(r, analytics.RecordFailedSignIn)
 		a.render(w, r, 422, Page{View: "login", Title: "Sign in", Username: username, Error: "That username and password did not match."})
 		return
@@ -160,7 +162,7 @@ func (a *App) createPost(w http.ResponseWriter, r *http.Request) {
 		}
 		for i, file := range files {
 			if file.Size > MaxPhotoBytes {
-				a.postError(w, r, body, key, "Choose photos up to 5 MB each.")
+				a.postError(w, r, body, key, "Choose photos up to "+ui.Size(MaxPhotoBytes)+" each.")
 				return
 			}
 			reader, err := file.Open()

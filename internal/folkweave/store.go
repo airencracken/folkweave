@@ -19,6 +19,7 @@ import (
 
 	"github.com/airencracken/comfylib/invitation"
 	"github.com/airencracken/comfylib/memberprofile"
+	"github.com/airencracken/comfylib/password"
 	"github.com/airencracken/comfylib/token"
 	"github.com/airencracken/comfylib/ui"
 	"golang.org/x/crypto/bcrypt"
@@ -159,17 +160,11 @@ func validText(value string, limit int, multiline bool) bool {
 	}
 	return true
 }
-func ValidateCredentials(username, password string) error {
+func ValidateCredentials(username, secret string) error {
 	if !usernamePattern.MatchString(username) {
 		return errors.New("use 3–32 lowercase letters, numbers or underscores; start with a letter")
 	}
-	if !utf8.ValidString(password) || utf8.RuneCountInString(password) < 12 {
-		return errors.New("choose a password with at least 12 characters")
-	}
-	if len(password) > 72 {
-		return errors.New("use a shorter password")
-	}
-	return nil
+	return password.Validate(secret)
 }
 func HashPassword(password string) (string, error) {
 	b, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)

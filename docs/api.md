@@ -2,7 +2,7 @@
 
 A read-only JSON API for signed-in members. Sign in through the browser first;
 the API uses the same session. Requests without a session get 401. Errors are
-plain text, and no response is cached.
+JSON with `status` and `error`, and no response is cached.
 
 | Method | Route | Result |
 | --- | --- | --- |

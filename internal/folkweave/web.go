@@ -10,6 +10,7 @@ import (
 	"github.com/airencracken/comfylib/admin"
 	"github.com/airencracken/comfylib/analytics"
 	"github.com/airencracken/comfylib/displaytime"
+	"github.com/airencracken/comfylib/problem"
 	"github.com/airencracken/comfylib/ratelimit"
 	"github.com/airencracken/comfylib/suite"
 	"html/template"
@@ -50,6 +51,7 @@ type App struct {
 	limiter   rateLimiter
 	uploads   chan struct{}
 	monitor   *analytics.Monitor
+	problems  problem.Writer
 	Backups   *autobackup.Runner
 }
 type requestState struct {
@@ -109,7 +111,7 @@ func NewApp(store *Store, c Config) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	functions := template.FuncMap{"themePicker": ui.ThemePicker, "timezonePreference": displaytime.RenderPreference, "adminSummary": admin.Render, "linkify": linkify, "canEdit": func(u *User, p Post) bool { return u != nil && u.ID == p.Author.ID }, "canDelete": func(u *User, id int64) bool { return u != nil && (u.Owner() || u.ID == id) }}
+	functions := template.FuncMap{"themePicker": ui.ThemePicker, "photoLimit": func() string { return ui.Size(MaxPhotoBytes) }, "photoBytes": func() int64 { return MaxPhotoBytes }, "timezonePreference": displaytime.RenderPreference, "adminSummary": admin.Render, "linkify": linkify, "canEdit": func(u *User, p Post) bool { return u != nil && u.ID == p.Author.ID }, "canDelete": func(u *User, id int64) bool { return u != nil && (u.Owner() || u.ID == id) }}
 	functions["postContext"] = func(root Page, post Post) Page { root.Post = post; return root }
 	t, err := template.New("pages").Funcs(suiteFuncs).Funcs(functions).Funcs(displaytime.New("UTC").Funcs()).ParseFS(assets, "templates/*.html")
 	if err != nil {
@@ -120,6 +122,9 @@ func NewApp(store *Store, c Config) (*App, error) {
 		return nil, err
 	}
 	a := &App{store: store, config: c, base: u, templates: bound, dummyHash: dummy, resolver: clientip.Resolver{Trusted: trusted}, uploads: make(chan struct{}, 2), monitor: analytics.NewMonitor(store.db)}
+	a.problems = problem.Writer{Layout: func(w http.ResponseWriter, r *http.Request, page problem.Page) error {
+		return a.renderTo(w, r, page.Status, Page{View: "error-page", Title: page.Title, Error: page.Message})
+	}}
 	mux := http.NewServeMux()
 	static, _ := fs.Sub(assets, "static")
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(static))))
@@ -277,7 +282,7 @@ func (a *App) private(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if state(r).User == nil {
 			if strings.HasPrefix(r.URL.Path, "/api/") {
-				http.Error(w, "Sign in required", 401)
+				a.problems.Write(w, r, http.StatusUnauthorized, "Sign in first.", nil)
 				return
 			}
 			if strings.HasPrefix(r.URL.Path, "/photos/") {
@@ -326,12 +331,15 @@ func (a *App) page(r *http.Request, p Page) Page {
 	return p
 }
 func (a *App) render(w http.ResponseWriter, r *http.Request, status int, p Page) {
+	if err := a.renderTo(w, r, status, p); err != nil {
+		slog.Error("render page", "error", err)
+	}
+}
+func (a *App) renderTo(w http.ResponseWriter, r *http.Request, status int, p Page) error {
 	p = a.page(r, p)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
-	if err := a.templates.ExecuteTemplate(w, preferredTimezone(r), "layout", p); err != nil {
-		slog.Error("render page", "error", err)
-	}
+	return a.templates.ExecuteTemplate(w, preferredTimezone(r), "layout", p)
 }
 func (a *App) partial(w http.ResponseWriter, r *http.Request, status int, name string, p Page) {
 	p = a.page(r, p)
@@ -352,10 +360,10 @@ func (a *App) formError(w http.ResponseWriter, r *http.Request, status int, mess
 		a.partial(w, r, status, "error", Page{Error: message})
 		return
 	}
-	a.render(w, r, status, Page{View: "error-page", Title: "Something needs attention", Error: message})
+	a.problems.Write(w, r, status, message, nil)
 }
 func (a *App) fail(w http.ResponseWriter, r *http.Request, err error) {
-	status, message := 500, "Something went wrong. Your changes may not have been saved; try the same submission again."
+	status, message, detail := 500, "Something went wrong. Your changes may not have been saved; try the same submission again.", error(nil)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		status, message = 404, "That item could not be found."
@@ -368,13 +376,9 @@ func (a *App) fail(w http.ResponseWriter, r *http.Request, err error) {
 	case errors.Is(err, ErrInvitation) || errors.Is(err, ErrUsername):
 		status, message = 422, sentence(err.Error())
 	default:
-		slog.Error("request failed", "path", r.URL.Path, "error", err)
+		detail = err
 	}
-	if strings.HasPrefix(r.URL.Path, "/api/") {
-		http.Error(w, message, status)
-		return
-	}
-	a.render(w, r, status, Page{View: "error-page", Title: "Something needs attention", Error: message})
+	a.problems.Write(w, r, status, message, detail)
 }
 func (a *App) json(w http.ResponseWriter, value any) {
 	w.Header().Set("Content-Type", "application/json")
@@ -430,7 +434,7 @@ func (a *App) authAllowed(w http.ResponseWriter, r *http.Request) bool {
 	if !a.limiter.allow(clientip.NetworkKey(a.resolver.Client(r))) {
 		a.countSecurity(r, analytics.RecordRateLimited)
 		w.Header().Set("Retry-After", "900")
-		a.render(w, r, 429, Page{View: "error-page", Title: "Take a little break", Error: "Too many attempts. Try again in 15 minutes."})
+		a.problems.Write(w, r, http.StatusTooManyRequests, "Too many attempts. Try again in 15 minutes.", nil)
 		return false
 	}
 	return true

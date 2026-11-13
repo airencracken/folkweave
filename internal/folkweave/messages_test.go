@@ -3,7 +3,9 @@ package folkweave
 
 import (
 	"bytes"
+	"errors"
 	"mime/multipart"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
@@ -12,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/airencracken/comfylib/autobackup"
+	"github.com/airencracken/comfylib/password"
 )
 
 var internalWording = []string{"MiB", "72 bytes", "Unexpected attachment", "Send each form field", "supported photo width", "normalized photo"}
@@ -40,16 +43,51 @@ func TestSentence(t *testing.T) {
 	}
 }
 
-func TestPasswordMessagesAvoidByteCounts(t *testing.T) {
-	if err := ValidateCredentials("member", "short"); err == nil || strings.Contains(err.Error(), "bytes") {
+func TestCredentialsUseTheSharedPasswordRule(t *testing.T) {
+	for value, want := range map[string]error{"short": password.ErrTooShort, strings.Repeat("é", 40): password.ErrTooLong, "bad\xff-password-bytes": password.ErrInvalid} {
+		if err := ValidateCredentials("member", value); !errors.Is(err, want) {
+			t.Fatalf("%q: got %v, want %v", value, err, want)
+		}
+	}
+	if err := ValidateCredentials("member", strings.Repeat("a", password.MaxBytes)); err != nil {
+		t.Fatal("password at the byte limit rejected", err)
+	}
+}
+
+func TestSignInRejectsPasswordsBcryptWouldTruncate(t *testing.T) {
+	s, a, _ := webFixture(t)
+	long := strings.Repeat("a", password.MaxBytes)
+	hash, err := HashPassword(long)
+	if err != nil {
 		t.Fatal(err)
 	}
-	err := ValidateCredentials("member", strings.Repeat("é", 40))
-	if err == nil || err.Error() != "use a shorter password" {
-		t.Fatal("long password", err)
+	if _, err = s.db.Exec("UPDATE users SET password_hash=? WHERE id=1", hash); err != nil {
+		t.Fatal(err)
 	}
-	if err = ValidateCredentials("member", strings.Repeat("a", 72)); err != nil {
-		t.Fatal("72-byte password rejected", err)
+	guest := &testClient{app: a, cookies: map[string]*http.Cookie{}}
+	if w := guest.form(t, "/login", url.Values{"username": {"owner"}, "password": {long + "b"}}, false); w.Code != 422 {
+		t.Fatal("over-long password matched a truncated hash", w.Code)
+	}
+	if w := guest.form(t, "/login", url.Values{"username": {"owner"}, "password": {long}}, false); w.Code != 303 {
+		t.Fatal("password at the limit refused", w.Code)
+	}
+}
+
+func TestErrorsUseStyledPagesAndJSONForTheAPI(t *testing.T) {
+	_, _, owner := webFixture(t)
+	w := owner.request("GET", "/api/v1/me", nil, nil)
+	if w.Code != 401 || w.Header().Get("Content-Type") != "application/json" || !strings.Contains(w.Body.String(), `"status":401`) {
+		t.Fatal("API sign-in error", w.Code, w.Header(), w.Body.String())
+	}
+	owner.signIn(t, "owner")
+	w = owner.request("GET", "/api/v1/posts/999999", nil, nil)
+	if w.Code != 404 || !strings.Contains(w.Body.String(), `"error":"That item could not be found."`) {
+		t.Fatal("API not found", w.Code, w.Body.String())
+	}
+	w = owner.request("GET", "/posts/999999", nil, nil)
+	body := w.Body.String()
+	if w.Code != 404 || !strings.Contains(body, `class="site-header"`) || !strings.Contains(body, "<h1>Nothing here</h1>") || !strings.Contains(body, "That item could not be found.") {
+		t.Fatal("styled not-found page", w.Code, body)
 	}
 }
 
@@ -110,7 +148,7 @@ func TestPhotoWidthAndComposerUsePlainWording(t *testing.T) {
 		assertPlain(t, "photo width", w.Body.String())
 	}
 	timeline := owner.request("GET", "/", nil, nil).Body.String()
-	if !strings.Contains(timeline, "5 MB each") {
+	if !strings.Contains(timeline, "5 MB each") || !strings.Contains(timeline, `data-max-bytes="5000000"`) {
 		t.Fatal("composer size limit missing")
 	}
 	assertPlain(t, "timeline", timeline)

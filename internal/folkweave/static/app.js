@@ -11,9 +11,11 @@
         env.addEventListener('beforeunload', this.unload);
       },
       choose(event) {
-        const files = Array.from(event.target.files || []);
-        if (files.length > 4 || files.some(file => file.size > 5 * 1024 * 1024 || !['image/jpeg', 'image/png'].includes(file.type))) {
-          this.error = 'Choose up to four JPEG or PNG photos, no larger than 5 MB each.';
+        const input = event.target, data = input.dataset || {};
+        const limit = Number(data.maxBytes) || 5000000, label = data.maxLabel || '5 MB';
+        const files = Array.from(input.files || []);
+        if (files.length > 4 || files.some(file => file.size > limit || !['image/jpeg', 'image/png'].includes(file.type))) {
+          this.error = 'Choose up to four JPEG or PNG photos, no larger than ' + label + ' each.';
           this.sync(); return;
         }
         this.photos.forEach(photo => env.URL.revokeObjectURL(photo.preview));
