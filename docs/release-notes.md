@@ -1,151 +1,142 @@
-# Folkweave 0.6.0
+# Folkweave release notes
 
-Account settings now offer the same **Times and dates** control used across the
-five Comfyware applications. Open `/account`, choose an IANA timezone such as
-`America/Los_Angeles`, and select **Save timezone**. UTC is the default. Your
-choice is saved for your account across sessions and devices. **Use this device's
-timezone** fills the field when JavaScript is available; saving remains explicit.
-Manual selection and local date rendering also work without JavaScript.
+Back up the stopped data directory before every upgrade, and keep that copy
+until you are sure you will not go back. An older Folkweave cannot open a
+database that a newer one has upgraded.
 
-Comfylib 0.6.0 owns validation, formatting, the account control, browser detection
-and bounded template caching. Dates handle daylight saving and calendar boundaries.
-Admin dashboard sign-in and backup instants follow your preference; reporting
-days remain UTC. Stored timestamps, API responses and machine-readable timestamps
-retain their existing UTC contract. Account isolation, native permissions and CSRF
-checks apply to every preference change.
+## Unreleased
 
-Startup adds a separately versioned display preference namespace. Application
-migration and export format versions are unchanged. Back up the stopped data
-directory before upgrading and retain that snapshot for a downgrade.
+- Owners reach everything from **Admin**: Settings, Invitations, and Metrics.
+  The **Account** menu holds your account, the theme, and Sign out.
+- Choose a System, Light, or Dark theme from the **Account** menu.
+- **Times and dates** has its own panel on the Account page.
+- Posts no longer repeat "Everyone here" under each one.
+- Error messages use plain words. Size limits read 5 MB.
+- Admin pages use Folkweave's colors, type, and corners.
+- Metrics shows health totals only. Folkweave no longer records sign-ins or
+  which posts and photos people open.
 
-# Folkweave 0.5.0
+### For operators
 
-Native admin metrics now use one shared dashboard with identical typography, spacing, cards, tables and reporting definitions across the apps. Successful local and community sign-ins and authorized content opens are recorded by Comfylib 0.5.0. Views count once per account, item and UTC day; thumbnails, background assets, failed requests and signed-out visits do not count.
+- Startup deletes the sign-in and view records kept by 0.5.0 and 0.6.0.
+- Owners see a short backup summary. The full error is in the server log.
+- Help lists `--data-dir`. `--data` and `init` still work but are no longer
+  listed.
 
-Only active administrators (called owners in this app where applicable) can read the dashboard or its account sign-in summaries. Ordinary members, guests and moderators cannot read analytics. The dashboard shows the past seven UTC days, when collection began, daily totals, recent sign-ins by account, and most-viewed content. Recording begins after upgrade; no earlier history is inferred. No IP addresses or browser identifiers are recorded. Activity is retained for ninety UTC days, pruned at startup and daily while serving, and removed when its account is deleted.
+## 0.6.0
 
-The analytics tables are additive and separately versioned by Comfylib; existing application data and application migration versions are unchanged. Back up before upgrading. Existing archives remain supported. Shared browser contracts now check exact dashboard styling, widths and access boundaries in both themes and with JavaScript disabled.
+- Pick a display timezone under **Account**, in **Times and dates**. Search for
+  a city or enter a name such as `America/Los_Angeles`, then select **Save
+  timezone**. UTC is the default.
+- Your choice follows your account to every device.
+- With JavaScript on, **Use this device's timezone** fills in the field for
+  you. Saving is always your choice.
+- Dates on every page follow your choice.
 
-# Folkweave 0.4.0
+### For operators
 
-Native owner/admin metrics now show aggregate membership, content, storage and recent activity, with owner-only operational summaries for backups and configured suite connections. The pages work without JavaScript and follow the application's existing permissions.
+- Startup adds a table for display preferences.
+- Stored timestamps and API responses stay in UTC.
 
-Rate limiting uses the bounded shared implementations while retaining the app's own budgets. Release preparation, artifact verification, browser fixtures and immutable CI workflows use the published Comfylib pin directly. A release preflight verifies version metadata, cold module caches and the exact shared workflow revision before publication.
+## 0.5.0
 
-No application database migration is added. Existing service configuration and account permissions remain supported.
+- The owner Metrics page uses the same layout as the other Comfyware apps.
+- This release recorded sign-ins and post and photo opens for owners to see.
+  The next release removes these records.
 
-# Folkweave releases
+### For operators
+
+- Startup adds tables for the sign-in and view records.
+
+## 0.4.0
+
+- Owners get a Metrics page with member, content, and storage totals, backup
+  status, and the optional connections that are set up. It works without
+  JavaScript.
+
+### For operators
+
+- Sign-in rate limits use shared Comfylib code and keep the same limits.
+- No database changes.
 
 ## 0.3.4
 
-- Make administration visible in the main navigation for owners.
-- Resolve shared tooling on fresh container CI runners and verify it with the
-  module proxy disabled before running the release gates.
+- Owners see **Admin** in the main navigation.
 
-- Import the suite helpers directly from published Comfylib 0.3.0 and use its
-  embedded styles and browser controls.
-- Replace the local OpenID Connect protocol adapter with the separately versioned
-  Comfylib OIDC module 0.1.0. Existing local session and permission hooks remain
-  application-owned.
-- Run service configuration, deployment, release, artifact scanning, mutation and
-  container checks directly from the pinned shared module. Retain application
-  configuration and both existing backup/restore lifecycle profiles.
-- Add integration tests that verify shared asset routes and exact published bytes.
+### For operators
 
-This maintenance release adds no application database migration or new default
-integration. Back up your data before upgrading. When upgrading from older
-versions, follow the earlier release notes for any migrations you have not run.
+- Release checks run on fresh CI runners.
+- No database changes.
+
+## 0.3.3
+
+### For operators
+
+- Source builds report the right version. 0.3.2 built from source reported 0.3.1.
+
+## 0.3.2
+
+### For operators
+
+- The Apps menu, community sign-in, and shared styles come from published
+  Comfylib 0.3.0 and its OIDC module 0.1.0.
+- Release, container, and configuration checks run from the pinned Comfylib.
+- No database changes.
 
 ## 0.3.1
 
-- Forward optional app navigation and community sign-in settings through OpenRC
-  and Docker Compose. Native templates document disabled defaults. Regression
-  tests check literal values and reject missing service exports.
-- Add an optional Apps menu and consistent keyboard, focus and account controls.
-- Add explicitly linked community sign-in using OpenID Connect, state, nonce and
-  PKCE. Existing local accounts and passwords remain available; accounts are never
-  created or linked by matching email addresses. Configure this only when wanted.
-- Use published Comfylib v0.2.0 and require Go 1.26.11 or newer for source builds.
-- Upgrade golang.org/x/crypto to v0.59.0 and scan the actual release executables
-  for vulnerable dependencies before publication.
+### For operators
 
-- Serve cached 320, 640 and 960 pixel photograph previews with responsive images
-  and lazy loading. Full-size normalized photos remain available when opened.
-- Bound concurrent preview generation and preserve photo authorization and
-  deletion guarantees. The additive photo_previews table stores derived images.
+- OpenRC and Docker Compose pass the Apps menu and community sign-in settings
+  through to Folkweave.
 
-Read [Suite integration](suite.md) for configuration and security boundaries.
-Back up the stopped data directory before upgrading. Shared sign-in creates an
-additive identity-binding table when configured. Keep the pre-upgrade backup;
-use it when returning to older binaries rather than opening a migrated database
-with an older application. Publishing a release does not change running services.
+## 0.3.0
 
+- An optional Apps menu links to your other Comfyware apps.
+- Optional community sign-in with OpenID Connect. Link it from **Account**
+  after signing in with your password. Folkweave never creates or links an
+  account by matching an email address.
+- Photos load faster: the timeline uses cached 320, 640, and 960 pixel copies.
 
-# Folkweave 0.3.0
+### For operators
 
-- Add an optional Apps menu and consistent keyboard, focus and account controls.
-- Add explicitly linked community sign-in using OpenID Connect, state, nonce and
-  PKCE. Existing local accounts and passwords remain available; accounts are never
-  created or linked by matching email addresses. Configure this only when wanted.
-- Use published Comfylib v0.2.0 and require Go 1.26.11 or newer for source builds.
-- Upgrade golang.org/x/crypto to v0.59.0 and scan the actual release executables
-  for vulnerable dependencies before publication.
+- Source builds need Go 1.26.11 or later. golang.org/x/crypto is updated to
+  v0.59.0.
+- Startup adds a table for cached photo copies. Community sign-in adds a table
+  for linked identities when you set it up.
+- See [Comfyware connections](suite.md) for settings.
 
-- Serve cached 320, 640 and 960 pixel photograph previews with responsive images
-  and lazy loading. Full-size normalized photos remain available when opened.
-- Bound concurrent preview generation and preserve photo authorization and
-  deletion guarantees. The additive photo_previews table stores derived images.
+## 0.2.1
 
-Read [Suite integration](suite.md) for configuration and security boundaries.
-Back up the stopped data directory before upgrading. Shared sign-in creates an
-additive identity-binding table when configured. Keep the pre-upgrade backup;
-use it when returning to older binaries rather than opening a migrated database
-with an older application. Publishing a release does not change running services.
+### For operators
 
-# Folkweave 0.2.1
+- Service configuration files use `KEY="value"` for every setting. Existing
+  files keep working.
 
-- Standardize shipped service configs and documented environment examples on
-  `KEY="value"`, including numbers, booleans, and empty values.
-- Identify the service manager and installed config path in every template.
-- Check source and generated package configs, literal quoting, and OpenRC
-  environment inheritance during `make check`.
+## 0.2.0
 
-Existing configuration values remain supported and local files are preserved.
-No database migration is introduced.
+- Create the first owner in the browser with `folkweave setup`.
+- `create-owner` and `set-password` ask for the password twice without echoing
+  it, and accept `--password-stdin`, `--password-file`, and `--data-dir`.
+  Changing a password signs that account out everywhere.
 
-# Folkweave 0.2.0
+## 0.1.1
 
-- Add browser first-owner setup through `folkweave setup`, with a private host key,
-  confirmed passwords, and setup closing once an owner exists.
-- Align `create-owner` and `set-password` across Comfyware: hidden confirmed input
-  by default, plus `--password-prompt`, `--password-stdin`, `--password-file`,
-  and `--data-dir`. Password changes end earlier signed-in sessions.
-- Use published Comfylib v0.1.8 and retain existing account command aliases.
+- `folkweave create-owner --username NAME` creates the first owner or adds
+  another one without changing the group's settings.
 
-# Folkweave 0.1.1
+### For operators
 
-- Fix OpenRC configuration inheritance: existing plain assignments now reach the
-  service without requiring `export`, including the public origin and proxy trust.
+- OpenRC passes plain `KEY=value` settings to the service without `export`.
 
-- Add `folkweave create-owner --username NAME` for first-time setup and additional
-  owner accounts. It preserves existing settings and rejects existing usernames.
-  The `init` command remains available for first-time setup; existing 0.1.0
-  installations can use it immediately.
+## 0.1.0
 
-# Folkweave 0.1.0
+The first public release.
 
-The first public release of Folkweave. This is an early release for small,
-self-hosted installations; read the current scope and limitations in the README.
-
-- Invite-only accounts, chronological posts with up to four photos, replies, profiles and private bookmarks.
-- Normalized private photographs, account exports, moderation and retry-safe submissions.
-- Verified automatic and manual backups, restoration, service configuration,
-  and account recovery using Comfylib v0.1.7.
-- Linux amd64/arm64 archives, Debian packages, source and checksums, versioned
-  multi-platform container images, and Gentoo overlay packaging.
-- Private service accounts, loopback native defaults, HTTPS proxy examples,
-  and tested installation and container lifecycles.
-
-One installation has one shared audience. Parent-managed accounts and parental approval controls remain future work. Original photograph uploads are not retained.
-
-[Installation](releases.md) · [Containers](containers.md) · [Hosting](deployment.md) · [Backups](automatic-backups.md)
+- Invite-only accounts, a newest-first timeline, posts with up to four photos,
+  replies, profiles, and saved posts.
+- Resized, private photos. Folkweave does not keep originals.
+- Account exports and owner removal of posts and replies.
+- Daily verified backups, restore, and password recovery.
+- Linux amd64 and arm64 archives, Debian packages, container images, and a
+  Gentoo overlay package.

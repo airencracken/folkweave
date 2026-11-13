@@ -7,10 +7,40 @@ import os
 import shlex
 import subprocess
 import sys
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 APP = ROOT.joinpath('go.mod').read_text().splitlines()[0].split('/')[-1]
+
+
+def version_errors(root):
+    """Every version a reader sees in the README and guides must match VERSION."""
+    version = (root/'VERSION').read_text().strip()
+    problems = []
+    readme = (root/'README.md').read_text()
+    current = re.findall(r'Current release: \*\*\[([0-9.]+)\]\([^)]*/releases/tag/v([0-9.]+)\)\*\*', readme)
+    if current != [(version, version)]:
+        problems.append('README needs one current release line for ' + version)
+    if re.search(r'^## ' + re.escape(APP) + r' [0-9]', readme, re.I | re.M):
+        problems.append('release notes belong in docs/release-notes.md, not the README')
+    if "[What's new](docs/release-notes.md)" not in readme:
+        problems.append("README needs a What's new link")
+    guides = [root/'README.md', *sorted((root/'docs').glob('*.md'))]
+    for path in guides:
+        if path.name == 'release-notes.md':
+            continue
+        text = path.read_text()
+        for pattern in (APP + r':v([0-9]+\.[0-9]+\.[0-9]+)', APP + r'_([0-9]+\.[0-9]+\.[0-9]+)',
+                        r'current release is \*\*([0-9.]+)\*\*'):
+            for found in re.findall(pattern, text, re.I):
+                if found != version:
+                    problems.append(f'{path.name} mentions {found}, expected {version}')
+    notes = (root/'docs/release-notes.md').read_text()
+    first = re.search(r'^## ([0-9]+\.[0-9]+\.[0-9]+)\s*$', notes, re.M)
+    if not first or first[1] != version:
+        problems.append('newest release notes heading must be ' + version)
+    return problems
 
 
 class ReleaseTests(unittest.TestCase):
@@ -24,6 +54,35 @@ class ReleaseTests(unittest.TestCase):
             self.assertIn('docs/'+name+'.md', readme)
         self.assertIn('https://ko-fi.com/airencracken', readme)
         self.assertEqual((ROOT/'.github/FUNDING.yml').read_text().strip(), 'ko_fi: airencracken')
+
+    def test_readme_and_guides_match_version(self):
+        self.assertEqual(version_errors(ROOT), [])
+
+    def test_stale_versions_are_rejected(self):
+        version = (ROOT/'VERSION').read_text().strip()
+        files = ['VERSION', 'README.md', *[str(p.relative_to(ROOT)) for p in (ROOT/'docs').glob('*.md')]]
+        cases = [('README.md', 'Current release: **[' + version, 'Current release: **[0.0.1'),
+                 ('README.md', "[What's new](docs/release-notes.md)", ''),
+                 ('README.md', '## Install', '## ' + APP.capitalize() + ' 9.9.9\n\n## Install'),
+                 ('docs/containers.md', APP + ':v' + version, APP + ':v0.0.1'),
+                 ('docs/releases.md', APP + '_' + version, APP + '_0.0.1'),
+                 ('docs/release-notes.md', '## ' + version, '## 0.0.1'),
+                 ('VERSION', version, '9.9.9')]
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = Path(directory)
+            def reset():
+                for name in files:
+                    (fixture/name).parent.mkdir(parents=True, exist_ok=True)
+                    (fixture/name).write_text((ROOT/name).read_text())
+            reset()
+            self.assertEqual(version_errors(fixture), [])
+            for name, before, after in cases:
+                with self.subTest(name=name, after=after):
+                    reset()
+                    text = (fixture/name).read_text()
+                    self.assertIn(before, text)
+                    (fixture/name).write_text(text.replace(before, after, 1))
+                    self.assertTrue(version_errors(fixture))
 
     def test_native_service_and_private_storage_contracts(self):
         unit=(ROOT/'deploy/systemd'/f'{APP}.service').read_text()

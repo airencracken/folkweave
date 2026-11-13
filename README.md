@@ -4,188 +4,116 @@
 
 A private timeline for your people. A thought, a photograph, a bit of your day.
 
-Folkweave is a small, self-hosted Comfyware app for friends, family, or another
+Folkweave is a small, self-hosted Comfyware app for friends, family, or any
 group who choose each other. Each installation has its own accounts and
-invite-only membership. Everyone in the gathering can see its earlier posts.
+invite-only membership. Members can see everything the group has posted.
 
-Current release: **[0.3.4](https://github.com/airencracken/folkweave/releases/tag/v0.3.4)**.
+Current release: **[0.6.0](https://github.com/airencracken/folkweave/releases/tag/v0.6.0)**. [What's new](docs/release-notes.md)
 
 <br clear="right">
 
 [Comfyware](https://comfyware.org/) · [Project page](https://comfyware.org/folkweave/) · [Help and bugs](https://github.com/airencracken/folkweave/issues)
 
-Use a current Go security patch when building: Go 1.26.11 or later on the
-1.26 series, or Go 1.27.4 or later on the 1.27 series.
-
-## Folkweave 0.6.0
-
-Account settings now offer the same **Times and dates** control used across the
-five Comfyware applications. Open `/account`, choose an IANA timezone such as
-`America/Los_Angeles`, and select **Save timezone**. UTC is the default. Your
-choice is saved for your account across sessions and devices. **Use this device's
-timezone** fills the field when JavaScript is available; saving remains explicit.
-Manual selection and local date rendering also work without JavaScript.
-
-Comfylib 0.6.0 owns validation, formatting, the account control, browser detection
-and bounded template caching. Dates handle daylight saving and calendar boundaries.
-Admin dashboard sign-in and backup instants follow your preference; reporting
-days remain UTC. Stored timestamps, API responses and machine-readable timestamps
-retain their existing UTC contract. Account isolation, native permissions and CSRF
-checks apply to every preference change.
-
-Startup adds a separately versioned display preference namespace. Application
-migration and export format versions are unchanged. Back up the stopped data
-directory before upgrading and retain that snapshot for a downgrade.
-
-## Folkweave 0.5.0
-
-Native admin metrics now use one shared dashboard with identical typography, spacing, cards, tables and reporting definitions across the apps. Successful local and community sign-ins and authorized content opens are recorded by Comfylib 0.5.0. Views count once per account, item and UTC day; thumbnails, background assets, failed requests and signed-out visits do not count.
-
-Only active administrators (called owners in this app where applicable) can read the dashboard or its account sign-in summaries. Ordinary members, guests and moderators cannot read analytics. The dashboard shows the past seven UTC days, when collection began, daily totals, recent sign-ins by account, and most-viewed content. Recording begins after upgrade; no earlier history is inferred. No IP addresses or browser identifiers are recorded. Activity is retained for ninety UTC days, pruned at startup and daily while serving, and removed when its account is deleted.
-
-The analytics tables are additive and separately versioned by Comfylib; existing application data and application migration versions are unchanged. Back up before upgrading. Existing archives remain supported. Shared browser contracts now check exact dashboard styling, widths and access boundaries in both themes and with JavaScript disabled.
-
-## Folkweave 0.4.0
-
-Native owner/admin metrics now show aggregate membership, content, storage and recent activity, with owner-only operational summaries for backups and configured suite connections. The pages work without JavaScript and follow the application's existing permissions.
-
-Rate limiting uses the bounded shared implementations while retaining the app's own budgets. Release preparation, artifact verification, browser fixtures and immutable CI workflows use the published Comfylib pin directly. A release preflight verifies version metadata, cold module caches and the exact shared workflow revision before publication.
-
-No application database migration is added. Existing service configuration and account permissions remain supported.
-
-## Install
-
-Choose a [Linux archive or Debian package](docs/releases.md),
-[Docker Compose](docs/containers.md), or the
-[Comfyware Gentoo overlay](https://github.com/airencracken/comfyware#add-the-overlay).
-Read the [hosting](docs/deployment.md), [backup/recovery](docs/automatic-backups.md),
-and [release notes](docs/release-notes.md) before sharing an installation.
-The source demos below use disposable local data.
-
 ## Try it
 
-Build with Go 1.26.11 or newer:
+Build with Go 1.26.11 or later (or 1.27.4 or later on the 1.27 series), then
+start the demo:
 
 ```sh
 make build
 ./dist/folkweave demo
 ```
 
-Open <http://127.0.0.1:8084>. Sign in as `demo` with the password
-`folkweave-demo-only`. The demo contains fictional people and locally generated
-sample illustrations. It uses a temporary data directory that is removed on
-shutdown and only binds to a loopback address.
+Open <http://127.0.0.1:8084> and sign in as `demo` with the password
+`folkweave-demo-only`. The demo has fictional people and photos. It listens
+only on loopback and deletes its data when it stops.
 
-## Start your own gathering
+## Install
+
+Install a [Linux archive or Debian package](docs/releases.md), run it with
+[Docker Compose](docs/containers.md), or use the
+[Comfyware Gentoo overlay](https://github.com/airencracken/comfyware#add-the-overlay).
+
+Create the first owner in the browser with `folkweave setup`, or in the terminal:
 
 ```sh
-./dist/folkweave create-owner --data ./data --username owner --name "Your name" --title "Our people"
-./dist/folkweave serve --data ./data
+./dist/folkweave create-owner --data-dir ./data --username owner --name "Your name" --title "Our people"
+./dist/folkweave serve --data-dir ./data
 ```
 
-The owner command prompts for and confirms a password with terminal echo disabled.
-It creates the first owner and gathering together, or adds another owner to an
-existing gathering without changing its settings or other accounts. Existing
-usernames are rejected; use `set-password` for password recovery. The original
-`init` command remains available for first-time initialization only.
-Automation can supply one line through stdin using `--password-stdin`. Passwords
-need at least 12 Unicode characters and at most 72 UTF-8 bytes. Passwords are
-hashed with bcrypt; session and invitation secrets are stored only as digests.
+`create-owner` asks for the password twice without echoing it. Run it again to
+add another owner; it leaves the group's settings alone. [Setup](docs/setup.md)
+covers both paths, and [Comfyware connections](docs/suite.md) covers the
+optional Apps menu and community sign-in.
 
-For HTTPS behind a reverse proxy:
+Behind an HTTPS reverse proxy, give the public origin and the proxy's address:
 
 ```sh
-./dist/folkweave serve --data ./data --listen 127.0.0.1:8084 \
+./dist/folkweave serve --data-dir ./data --listen 127.0.0.1:8084 \
   --base-url https://folkweave.example.org --trusted-proxies 127.0.0.1/32,::1/128
 ```
 
-Use the actual external origin for `--base-url`. This controls accepted host
-headers, invitation links, and secure cookies. Only trust proxy networks you
-control. The Caddy example is in [packaging/Caddyfile](packaging/Caddyfile).
-The data directory must be private, mode `0700`; its database must be `0600`.
+Read [hosting](docs/deployment.md) and [backups](docs/automatic-backups.md)
+before you invite anyone.
 
-## What is here
+## What members can do
 
-- Invite-only accounts, expiring invitations, and owner-managed membership.
-- A chronological timeline, stable cursor pagination, and an explicit new-post button.
-- Short or long plain-text posts, clickable web links, and up to four photos.
-- Inline photo previews, descriptions, ordering, and draft protection with Alpine.
-- Replies that refresh immediately, retry-safe submissions, and private bookmarks.
-- Author edits, confirmed deletion, and owner removal of posts and replies.
-- Member profiles, sign-out, and host-assisted password recovery.
-- Private photo routes, account exports, verified snapshots, and automatic backups.
-- Ordinary forms and navigation that work with JavaScript disabled.
-- Light and dark themes, keyboard controls, and layouts checked at 320–1280 pixels.
+- Join with an invitation link and see the group's earlier posts.
+- Post short or long text, links, and up to four photos with descriptions.
+- Reply, save posts for later, and edit or remove their own words.
+- Pick a display timezone under **Account**, in **Times and dates**.
+- Choose a System, Light, or Dark theme from the **Account** menu.
+- Download their own posts, photos, and replies from **Account**.
 
-Shared photos are normalized to JPEG, oriented using JPEG EXIF, resized to at
-most 1920 pixels on either side, and stripped of metadata. JPEG/PNG inputs are
-limited to 5 MiB and 20 megapixels each. **Original uploads are not retained.**
-Keep original photographs separately; Imvault remains the home for collections.
+The timeline is newest first and has an end. Posting, replying, and every
+other form work without JavaScript.
 
-The first pass has one installation-wide audience. Managed child accounts and
-reviewed child feeds are later work; this build does not provide parental
-approval controls. [Product notes](docs/product.md) describe the intended scope.
+Folkweave resizes shared photos to at most 1920 pixels, converts them to JPEG,
+and strips their metadata. Each upload can be up to 5 MB and 20 megapixels.
+**Folkweave does not keep your originals**, so keep them somewhere else, such
+as Imvault.
 
-## Owner administration
+Everyone in an installation sees the same timeline. Parent-managed accounts
+and reviewed feeds are not built. [Product notes](docs/product.md) describe
+the scope.
 
-Owners have an **Admin** link in the main navigation. It opens gathering settings
-and backup status. Invitations remain available under **Account**, and membership
-controls are under **People**. Ordinary members cannot open gathering settings.
+## Running the group
 
-## Accounts and recovery
+Owners see **Admin** in the main navigation. It holds three pages:
 
-Owners create invitations under **Invite someone**. Links expire after seven
-days, can admit 1–50 people, and are shown only once. An invited member sees
-the gathering's earlier posts and photos. Owners can close invitations and
-suspend or restore membership under **People**.
+- **Settings**: the group's name, description, and backup status.
+- **Invitations**: create links that admit 1 to 50 people for seven days. Each
+  link is shown once.
+- **Metrics**: health totals for the installation.
 
-To reset a member's password, run as the account that owns the data directory:
+Suspend or restore a member under **People**. Suspending ends their sessions
+and keeps their posts.
+
+To reset a password, run this as the account that owns the data directory. It
+ends that member's sessions:
 
 ```sh
-./dist/folkweave set-password --data ./data --username member
+./dist/folkweave set-password --data-dir ./data --username member
 ```
 
-This prompts for a new password and revokes that member's existing sessions.
+## What Folkweave records
+
+Metrics shows totals that Folkweave counts from the data it already holds:
+members, suspended members, open invitations, posts, replies, photos, photo
+storage, new posts in the past seven days, and database size. It also shows
+the running version, backup status, and which optional connections are set up.
+
+Folkweave does not record sign-ins, page views, or who opened which post or
+photo. Upgrading deletes the sign-in and view records that 0.5.0 and 0.6.0 kept.
 
 ## Backups and exports
 
-The database contains the posts, replies, accounts, and normalized photographs.
-The running service uses comfylib to create a verified automatic snapshot daily.
-The first automatic attempt is about one minute after startup. The owner page
-shows backup status. Keep protected copies on another machine as well.
+The server makes a verified backup every day under the data directory, and you
+can make one by hand. [Backups and recovery](docs/automatic-backups.md) has the
+commands and settings. Copy backups to another machine too. A member's export
+holds only their own posts, photos, and replies.
 
-| Environment variable | Default |
-| --- | --- |
-| `FOLKWEAVE_DATA_DIR` | `./data` |
-| `FOLKWEAVE_LISTEN` | `127.0.0.1:8084` |
-| `FOLKWEAVE_BASE_URL` | Listen origin |
-| `FOLKWEAVE_TRUSTED_PROXIES` | None |
-| `FOLKWEAVE_BACKUP_INTERVAL` | `24h`; `0` disables |
-| `FOLKWEAVE_BACKUP_KEEP` | `7` |
-| `FOLKWEAVE_BACKUP_MAX_BYTES` | `10737418240` |
-| `FOLKWEAVE_BACKUP_COPY_MAX_BYTES` | `5368709120` |
-
-A manual snapshot uses a fresh directory and includes an integrity check:
-
-```sh
-./dist/folkweave backup --data ./data --output ./snapshot
-./dist/folkweave restore --from ./snapshot/folkweave.db --data ./restored-data
-```
-
-Restore refuses an existing target and verifies the copied database before
-publishing it. Automatic archives contain `folkweave.db` in their compressed
-archive; unpack an archive privately and use that file with `restore`.
-
-Members can download their own posts, photographs, and replies as a ZIP archive
-from **Account**. Credentials and other members' posts are excluded.
-
-## Containers
-
-The [Docker Compose guide](docs/containers.md) uses the version-pinned
-`ghcr.io/airencracken/folkweave:v0.3.4` image and a private named volume.
-Container port 8080 maps to localhost port 8084. It runs as UID/GID 10001.
-
-## Development and checks
+## Development
 
 ```sh
 make check
@@ -195,40 +123,18 @@ npm ci --prefix scripts/browser
 make test-browser
 ```
 
-Browser checks use `/usr/bin/chromium` when present. Set `CHROMIUM` to another
-executable, or install the pinned Playwright browser with
+Browser tests use `/usr/bin/chromium` when it exists. Set `CHROMIUM` to use a
+different browser, or install Playwright's with
 `cd scripts/browser && npx playwright install chromium`.
-
-Tests cover route existence and methods, API contracts, cookie/CSRF policy,
-invitation redemption under concurrency, injected transaction failures, stable
-pagination during writes, media boundaries and orientation, snapshot/restore,
-JavaScript/no-JavaScript flows, composer lifecycle, and mutations of key guards.
 
 [Architecture](docs/architecture.md) · [HTTP API](docs/api.md) · [Mascot](docs/mascot.md)
 
 ## Support
 
-You can [support Folkweave on Ko-fi](https://ko-fi.com/airencracken).
-Support helps maintain Folkweave and the other [Comfyware projects](https://comfyware.org/).
+You can [support Folkweave on Ko-fi](https://ko-fi.com/airencracken). It helps
+maintain Folkweave and the other [Comfyware projects](https://comfyware.org/).
 
 ## License
 
-AGPL-3.0-or-later. See [LICENSE](LICENSE). Embedded HTMX and Alpine releases,
-licenses, sources, and checksums are recorded in [THIRD_PARTY.md](THIRD_PARTY.md).
-
-## Common setup
-
-New source builds share [browser and command-line setup](docs/setup.md) with the
-other Comfyware apps: `folkweave setup` authorizes the first-owner browser page,
-and `folkweave create-owner --username NAME` prompts privately by default.
-
-Optional app navigation, shared sign-in and discussion returns are described in
-[Comfyware connections](docs/suite.md).
-
-## Display timezone
-
-In your account settings (`/account`), choose **Times and dates**, enter a city
-timezone, and select **Save timezone**. The saved choice follows your account
-across devices. UTC is the default. Device detection fills the field when
-JavaScript is available; manual selection and saving work without it.
-Admin reporting days remain UTC.
+AGPL-3.0-or-later. See [LICENSE](LICENSE). [THIRD_PARTY.md](THIRD_PARTY.md)
+lists the bundled HTMX and Alpine releases with their licenses and checksums.
