@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/airencracken/comfylib/admin"
+	"github.com/airencracken/comfylib/analytics"
 	"github.com/airencracken/comfylib/displaytime"
 	"github.com/airencracken/comfylib/ratelimit"
 	"github.com/airencracken/comfylib/suite"
@@ -48,6 +49,7 @@ type App struct {
 	resolver  clientip.Resolver
 	limiter   rateLimiter
 	uploads   chan struct{}
+	monitor   *analytics.Monitor
 	Backups   *autobackup.Runner
 }
 type requestState struct {
@@ -109,7 +111,7 @@ func NewApp(store *Store, c Config) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &App{store: store, config: c, base: u, templates: bound, dummyHash: dummy, resolver: clientip.Resolver{Trusted: trusted}, uploads: make(chan struct{}, 2)}
+	a := &App{store: store, config: c, base: u, templates: bound, dummyHash: dummy, resolver: clientip.Resolver{Trusted: trusted}, uploads: make(chan struct{}, 2), monitor: analytics.NewMonitor(store.db)}
 	mux := http.NewServeMux()
 	static, _ := fs.Sub(assets, "static")
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(static))))
@@ -154,10 +156,21 @@ func NewApp(store *Store, c Config) (*App, error) {
 	if err = a.registerSharedSignIn(mux); err != nil {
 		return nil, err
 	}
-	a.handler = http.NewCrossOriginProtection().Handler(a.middleware(mux))
+	a.handler = http.NewCrossOriginProtection().Handler(a.middleware(analytics.Maintenance(store.db, a.monitor.Middleware(mux))))
 	return a, nil
 }
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) { a.handler.ServeHTTP(w, r) }
+
+// Flush writes request counts still held in memory. Call it on shutdown.
+func (a *App) Flush(ctx context.Context) error { return a.monitor.Flush(ctx) }
+
+// countSecurity records a security event for the owner dashboard. A failure
+// to count is logged and never blocks the request.
+func (a *App) countSecurity(r *http.Request, record func(context.Context, analytics.Executor, time.Time) error) {
+	if err := record(r.Context(), a.store.db, time.Now()); err != nil {
+		slog.Warn("count security event", "error", err)
+	}
+}
 func (a *App) cookieName(name string) string {
 	if a.base.Scheme == "https" {
 		return "__Host-folkweave_" + name
@@ -288,7 +301,7 @@ func (a *App) redirect(w http.ResponseWriter, r *http.Request, target string) {
 }
 func (a *App) page(r *http.Request, p Page) Page {
 	if state(r).User != nil && state(r).User.Owner() && (p.View == "settings" || p.View == "metrics") {
-		p.Overview = admin.WithOperations(p.Overview, a.config.Version, ownerBackupStatus(a.Backups.Status()), "FOLKWEAVE_")
+		p.Overview = admin.WithOperations(p.Overview, a.config.Version, a.Backups.Status(), "FOLKWEAVE_")
 	}
 	p.User = state(r).User
 	p.Overview.Timezone = preferredTimezone(r)
@@ -405,6 +418,7 @@ func (a *App) authAllowed(w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 	if !a.limiter.allow(clientip.NetworkKey(a.resolver.Client(r))) {
+		a.countSecurity(r, analytics.RecordRateLimited)
 		w.Header().Set("Retry-After", "900")
 		a.render(w, r, 429, Page{View: "error-page", Title: "Take a little break", Error: "Too many attempts. Try again in 15 minutes."})
 		return false

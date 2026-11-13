@@ -251,6 +251,9 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 		}
 		select {
 		case err = <-finished:
+			if flushErr := app.Flush(context.Background()); flushErr != nil {
+				slog.Warn("save request counts", "error", flushErr)
+			}
 			if errors.Is(err, http.ErrServerClosed) {
 				return nil
 			}
@@ -261,6 +264,9 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 			err = server.Shutdown(shutdown)
 			if err != nil {
 				server.Close()
+			}
+			if flushErr := app.Flush(shutdown); flushErr != nil {
+				slog.Warn("save request counts", "error", flushErr)
 			}
 			return err
 		}

@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/airencracken/comfylib/analytics"
 	"github.com/airencracken/comfylib/token"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -38,6 +39,7 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 	}
 	match := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	if err != nil || match != nil || len(password) > 72 || u.Disabled {
+		a.countSecurity(r, analytics.RecordFailedSignIn)
 		a.render(w, r, 422, Page{View: "login", Title: "Sign in", Username: username, Error: "That username and password did not match."})
 		return
 	}
@@ -60,6 +62,9 @@ func (a *App) join(w http.ResponseWriter, r *http.Request) {
 		err = ErrInvitation
 	}
 	if err != nil {
+		if errors.Is(err, ErrInvitation) {
+			a.countSecurity(r, analytics.RecordRejectedToken)
+		}
 		p.Error = sentence(err.Error())
 		a.render(w, r, 422, p)
 		return
@@ -71,6 +76,9 @@ func (a *App) join(w http.ResponseWriter, r *http.Request) {
 	}
 	id, err := a.store.Register(r.Context(), username, hash, name, secret)
 	if err != nil {
+		if errors.Is(err, ErrInvitation) {
+			a.countSecurity(r, analytics.RecordRejectedToken)
+		}
 		if errors.Is(err, ErrInvitation) || errors.Is(err, ErrUsername) {
 			p.Error = sentence(err.Error())
 			a.render(w, r, 422, p)
@@ -503,7 +511,7 @@ func (a *App) revokeInvite(w http.ResponseWriter, r *http.Request) {
 	a.redirect(w, r, "/invitations")
 }
 func (a *App) settings(w http.ResponseWriter, r *http.Request) {
-	a.render(w, r, 200, Page{View: "settings", Title: "Settings", Backup: ownerBackupStatus(a.Backups.Status())})
+	a.render(w, r, 200, Page{View: "settings", Title: "Settings", Backup: a.Backups.Status()})
 }
 func (a *App) configure(w http.ResponseWriter, r *http.Request) {
 	if err := a.store.Configure(r.Context(), state(r).User.ID, r.PostForm.Get("title"), r.PostForm.Get("about")); err != nil {

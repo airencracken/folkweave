@@ -5,17 +5,19 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
+	"github.com/airencracken/comfylib/analytics"
 )
 
-// retiredActivityTables held per-account sign-ins and per-item views recorded
-// by Folkweave 0.5.0 and 0.6.0. Folkweave now reports aggregates only, so
-// startup removes those tables and their rows. The migration is idempotent and
-// runs on every open; a database without the tables is left unchanged.
-var retiredActivityTables = []string{"comfy_analytics_activity", "comfy_analytics_meta"}
+// retiredActivityTable held per-account sign-ins and per-item views recorded
+// by Folkweave 0.5.0 and 0.6.0. analytics.Initialize also drops it; dropping it
+// here first, with secure_delete on, overwrites the freed pages so the old
+// account and content IDs do not stay in the file. Safe to run on every open.
+const retiredActivityTable = "comfy_analytics_activity"
 
 func retireActivity(ctx context.Context, db *sql.DB) error {
 	var present int
-	if err := db.QueryRowContext(ctx, "SELECT count(*) FROM sqlite_schema WHERE type='table' AND name IN (?,?)", retiredActivityTables[0], retiredActivityTables[1]).Scan(&present); err != nil {
+	if err := db.QueryRowContext(ctx, "SELECT count(*) FROM sqlite_schema WHERE type='table' AND name=?", retiredActivityTable).Scan(&present); err != nil {
 		return err
 	}
 	if present == 0 {
@@ -35,10 +37,8 @@ func retireActivity(ctx context.Context, db *sql.DB) error {
 	if err != nil {
 		return errors.Join(err, restoreSecureDelete(conn))
 	}
-	for _, table := range retiredActivityTables {
-		if _, err = tx.ExecContext(ctx, "DROP TABLE IF EXISTS "+table); err != nil {
-			return errors.Join(err, tx.Rollback(), restoreSecureDelete(conn))
-		}
+	if err = analytics.RemoveDetail(ctx, tx); err != nil {
+		return errors.Join(err, tx.Rollback(), restoreSecureDelete(conn))
 	}
 	if err = tx.Commit(); err != nil {
 		return errors.Join(err, restoreSecureDelete(conn))

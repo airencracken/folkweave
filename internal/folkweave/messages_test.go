@@ -150,11 +150,8 @@ func TestOwnerSeesBackupSummaryInsteadOfRawError(t *testing.T) {
 		if strings.Contains(body, raw) || strings.Contains(body, "/var/lib") {
 			t.Fatal(path, "shows the raw backup error")
 		}
-		if !strings.Contains(body, backupProblem) {
+		if strings.Count(body, autobackup.FailureSummary) != 1 {
 			t.Fatal(path, "missing backup summary")
 		}
-	}
-	if got := ownerBackupStatus(autobackup.Status{}); got.LastError != "" {
-		t.Fatal("summary invented for a healthy backup", got)
 	}
 }

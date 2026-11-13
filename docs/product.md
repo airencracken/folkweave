@@ -30,9 +30,13 @@ members, suspended members, open invitations, posts, replies, photos, photo
 storage, new posts in the past seven days, and database size. It also shows the
 running version, backup status, and which optional connections are set up.
 
-Folkweave does not record sign-ins, page views, or who opened which post or
-photo, and it never ranks members or posts. The server log holds errors and
-rejected requests.
+Below that, Site health shows daily requests for each kind of page, error
+rates, response times, and data sent, and Security shows failed sign-ins,
+rate-limited attempts, and rejected invitation links. These counts are kept
+for 90 days and name no one.
+
+Folkweave does not record who signed in, who opened which post or photo, IP
+addresses, or browsers, and it never ranks members or posts.
 
 ## Family controls
 

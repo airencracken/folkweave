@@ -103,8 +103,14 @@ members, suspended members, open invitations, posts, replies, photos, photo
 storage, new posts in the past seven days, and database size. It also shows
 the running version, backup status, and which optional connections are set up.
 
-Folkweave does not record sign-ins, page views, or who opened which post or
-photo. Upgrading deletes the sign-in and view records that 0.5.0 and 0.6.0 kept.
+For site health, Folkweave counts requests per day for each kind of page, such
+as `GET /posts/{id}`: how many, how many failed, how fast, and how much data
+was sent. It also counts failed sign-ins, rate-limited attempts, and rejected
+invitation links. These counts are kept for 90 days.
+
+Folkweave does not record who signed in, who opened which post or photo, IP
+addresses, or browsers. Upgrading deletes the sign-in and view records that
+0.5.0 and 0.6.0 kept.
 
 ## Backups and exports
 

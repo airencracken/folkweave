@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"github.com/airencracken/comfylib/analytics"
 	"github.com/airencracken/comfylib/displaytime"
 	"net/url"
 	"os"
@@ -128,6 +129,9 @@ func Open(dataDir string) (*Store, error) {
 		return nil, errors.Join(err, db.Close())
 	}
 	if err := retireActivity(context.Background(), db); err != nil {
+		return nil, errors.Join(err, db.Close())
+	}
+	if err := analytics.Initialize(context.Background(), db, time.Now()); err != nil {
 		return nil, errors.Join(err, db.Close())
 	}
 	return &Store{db: db, Path: path}, nil

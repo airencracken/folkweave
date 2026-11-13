@@ -192,14 +192,6 @@
     "run": "^TestDisplayTimezoneAccountRoutesAndRendering$"
   },
   {
-    "name": "startup removes legacy per-account activity",
-    "file": "internal/folkweave/retire_activity.go",
-    "before": "\"DROP TABLE IF EXISTS \"+table",
-    "after": "\"SELECT 1 WHERE ''<>?\", table",
-    "package": "./internal/folkweave",
-    "run": "^TestOpenRemovesStoredPerAccountAndPerItemActivity$"
-  },
-  {
     "name": "removed activity is overwritten on disk",
     "file": "internal/folkweave/retire_activity.go",
     "before": "\"PRAGMA secure_delete=ON\"",
@@ -216,19 +208,27 @@
     "run": "^TestOpenInvitationMetricCountsOnlyRedeemableInvitations$"
   },
   {
-    "name": "owners see a backup summary instead of the raw error",
-    "file": "internal/folkweave/messages.go",
-    "before": "status.LastError = backupProblem",
-    "after": "status.LastError += \"\"",
-    "package": "./internal/folkweave",
-    "run": "^TestOwnerSeesBackupSummaryInsteadOfRawError$"
-  },
-  {
     "name": "repeated form fields get the generic message",
     "file": "internal/folkweave/web.go",
     "before": "a.formError(w, r, 400, malformedSubmission)",
     "after": "a.formError(w, r, 400, \"Send each form field once.\")",
     "package": "./internal/folkweave",
     "run": "^TestMalformedSubmissionsGetOneGenericMessage$"
+  },
+  {
+    "name": "failed sign-ins are counted",
+    "file": "internal/folkweave/handlers.go",
+    "before": "a.countSecurity(r, analytics.RecordFailedSignIn)",
+    "after": "_ = analytics.RecordFailedSignIn",
+    "package": "./internal/folkweave",
+    "run": "^TestSecurityEventsAreCountedWithoutIdentities$"
+  },
+  {
+    "name": "request metrics wrap the router",
+    "file": "internal/folkweave/web.go",
+    "before": "a.monitor.Middleware(mux)",
+    "after": "mux",
+    "package": "./internal/folkweave",
+    "run": "^TestSignInsAndOpensAreNotRecorded$"
   }
 ]
