@@ -2,7 +2,9 @@
 
 /* Tokens. Colors come from the site palette (palettes.css, default sage) as
    --comfy-* tokens; Folkweave sets only its type, corners and a few extras. */
-:root { --comfy-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; --comfy-text-sm: 14px; --comfy-text-base: 16px; --comfy-text-lg: 20px; --comfy-text-xl: 28px; --comfy-radius: 14px; --comfy-radius-small: 8px; --text-2xl: 36px; --serif: ui-serif, Georgia, serif; --gold: light-dark(#ac986a, #b9a36e); --soft: color-mix(in srgb, var(--comfy-accent) 8%, var(--comfy-raised)); --shadow: 0 3px 18px light-dark(#293d2810, transparent); }
+:root { --comfy-heading-font: var(--serif);
+  --comfy-heading-weight: 400;
+  --comfy-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; --comfy-text-sm: 14px; --comfy-text-base: 16px; --comfy-text-lg: 20px; --comfy-text-xl: 28px; --comfy-radius: 14px; --comfy-radius-small: 8px; --text-2xl: 36px; --serif: ui-serif, Georgia, serif; --gold: light-dark(#ac986a, #b9a36e); --soft: color-mix(in srgb, var(--comfy-accent) 8%, var(--comfy-raised)); --shadow: 0 3px 18px light-dark(#293d2810, transparent); }
 
 /* Base */
 * { box-sizing: border-box; }

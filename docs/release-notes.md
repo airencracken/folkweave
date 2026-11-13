@@ -4,6 +4,11 @@ Back up the stopped data directory before every upgrade, and keep that copy
 until you are sure you will not go back. An older Folkweave cannot open a
 database that a newer one has upgraded.
 
+## 0.7.2
+
+- Color palettes change colors without changing Folkweave's fonts or heading weights.
+- Uses Comfylib 0.7.2. No database migration is needed.
+
 ## 0.7.1
 
 - Photo uploads accept up to 5 MiB again, and sizes are shown in MiB.

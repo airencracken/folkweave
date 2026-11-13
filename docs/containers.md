@@ -1,7 +1,7 @@
 # Run Folkweave with Docker Compose
 
 Images are on [GHCR](https://github.com/airencracken/folkweave/pkgs/container/folkweave)
-as `ghcr.io/airencracken/folkweave:v0.7.1`, for linux/amd64 and linux/arm64.
+as `ghcr.io/airencracken/folkweave:v0.7.2`, for linux/amd64 and linux/arm64.
 There is no `latest` tag, and published tags never change.
 
 Download `docker-compose.yml` from the release you want. Put the public origin

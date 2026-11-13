@@ -2,7 +2,7 @@
 
 [GitHub releases](https://github.com/airencracken/folkweave/releases) have
 Linux amd64 and arm64 archives, Debian packages, a source archive, and a
-SHA-256 checksum file. The current release is **0.7.1**.
+SHA-256 checksum file. The current release is **0.7.2**.
 
 After installing, create the first owner with [setup](setup.md).
 
@@ -12,7 +12,7 @@ Download the archive for your architecture and the checksum file, then check
 them in that directory:
 
 ```sh
-sha256sum -c folkweave_0.7.1_checksums.txt --ignore-missing
+sha256sum -c folkweave_0.7.2_checksums.txt --ignore-missing
 ```
 
 The archive holds the program, licenses, the README, these guides, and service
@@ -22,7 +22,7 @@ a private data directory, and set `FOLKWEAVE_DATA_DIR` to it.
 ## Debian or Ubuntu
 
 ```sh
-sudo apt install ./folkweave_0.7.1_amd64.deb
+sudo apt install ./folkweave_0.7.2_amd64.deb
 sudo folkweave create-owner --username owner --name "Your name" --title "Our group"
 sudo systemctl enable --now folkweave
 ```
