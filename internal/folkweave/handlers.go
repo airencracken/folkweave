@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -59,7 +60,7 @@ func (a *App) join(w http.ResponseWriter, r *http.Request) {
 		err = ErrInvitation
 	}
 	if err != nil {
-		p.Error = err.Error()
+		p.Error = sentence(err.Error())
 		a.render(w, r, 422, p)
 		return
 	}
@@ -71,7 +72,7 @@ func (a *App) join(w http.ResponseWriter, r *http.Request) {
 	id, err := a.store.Register(r.Context(), username, hash, name, secret)
 	if err != nil {
 		if errors.Is(err, ErrInvitation) || errors.Is(err, ErrUsername) {
-			p.Error = err.Error()
+			p.Error = sentence(err.Error())
 			a.render(w, r, 422, p)
 		} else {
 			a.fail(w, r, err)
@@ -144,13 +145,14 @@ func (a *App) createPost(w http.ResponseWriter, r *http.Request) {
 		}
 		for name := range r.MultipartForm.File {
 			if name != "photos" {
-				a.postError(w, r, body, key, "Unexpected attachment field.")
+				slog.Warn("rejected post with an unexpected attachment field", "field", name)
+				a.postError(w, r, body, key, malformedSubmission)
 				return
 			}
 		}
 		for i, file := range files {
 			if file.Size > MaxPhotoBytes {
-				a.postError(w, r, body, key, "Choose photos up to 5 MiB each.")
+				a.postError(w, r, body, key, "Choose photos up to 5 MB each.")
 				return
 			}
 			reader, err := file.Open()
@@ -170,7 +172,7 @@ func (a *App) createPost(w http.ResponseWriter, r *http.Request) {
 			}
 			photo, err := NormalizePhoto(data, alt)
 			if err != nil {
-				a.postError(w, r, body, key, err.Error())
+				a.postError(w, r, body, key, sentence(err.Error()))
 				return
 			}
 			photos = append(photos, photo)
@@ -283,7 +285,8 @@ func (a *App) photo(w http.ResponseWriter, r *http.Request) {
 	if values, ok := r.URL.Query()["width"]; ok {
 		width, parseErr := strconv.Atoi(r.URL.Query().Get("width"))
 		if len(values) != 1 || parseErr != nil || width != 320 && width != 640 && width != 960 {
-			http.Error(w, "Choose a supported photo width", http.StatusBadRequest)
+			slog.Info("rejected photo preview width", "width", r.URL.Query().Get("width"))
+			http.Error(w, "That photo size is not available.", http.StatusBadRequest)
 			return
 		}
 		select {
@@ -500,7 +503,7 @@ func (a *App) revokeInvite(w http.ResponseWriter, r *http.Request) {
 	a.redirect(w, r, "/invitations")
 }
 func (a *App) settings(w http.ResponseWriter, r *http.Request) {
-	a.render(w, r, 200, Page{View: "settings", Title: "Settings", Backup: a.Backups.Status()})
+	a.render(w, r, 200, Page{View: "settings", Title: "Settings", Backup: ownerBackupStatus(a.Backups.Status())})
 }
 func (a *App) configure(w http.ResponseWriter, r *http.Request) {
 	if err := a.store.Configure(r.Context(), state(r).User.ID, r.PostForm.Get("title"), r.PostForm.Get("about")); err != nil {

@@ -214,5 +214,21 @@
     "after": "FROM invitations WHERE revoked IN (0,1) AND",
     "package": "./internal/folkweave",
     "run": "^TestOpenInvitationMetricCountsOnlyRedeemableInvitations$"
+  },
+  {
+    "name": "owners see a backup summary instead of the raw error",
+    "file": "internal/folkweave/messages.go",
+    "before": "status.LastError = backupProblem",
+    "after": "status.LastError += \"\"",
+    "package": "./internal/folkweave",
+    "run": "^TestOwnerSeesBackupSummaryInsteadOfRawError$"
+  },
+  {
+    "name": "repeated form fields get the generic message",
+    "file": "internal/folkweave/web.go",
+    "before": "a.formError(w, r, 400, malformedSubmission)",
+    "after": "a.formError(w, r, 400, \"Send each form field once.\")",
+    "package": "./internal/folkweave",
+    "run": "^TestMalformedSubmissionsGetOneGenericMessage$"
   }
 ]

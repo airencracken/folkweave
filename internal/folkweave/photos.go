@@ -29,7 +29,7 @@ func newPhotoID() (string, error) {
 // metadata-free JPEG. Originals never become publicly addressable files.
 func NormalizePhoto(data []byte, alt string) (Photo, error) {
 	if len(data) == 0 || len(data) > MaxPhotoBytes || !validText(alt, 1000, false) {
-		return Photo{}, errors.New("choose JPEG or PNG photos up to 5 MiB, with descriptions up to 1,000 characters")
+		return Photo{}, errors.New("choose JPEG or PNG photos up to 5 MB, with descriptions up to 1,000 characters")
 	}
 	config, format, err := image.DecodeConfig(bytes.NewReader(data))
 	if err != nil || (format != "jpeg" && format != "png") || config.Width < 1 || config.Height < 1 || config.Width > 8192 || config.Height > 8192 || int64(config.Width)*int64(config.Height) > 20000000 {
@@ -55,7 +55,7 @@ func NormalizePhoto(data []byte, alt string) (Photo, error) {
 		return Photo{}, err
 	}
 	if encoded.Len() > 8<<20 {
-		return Photo{}, errors.New("normalized photo is too large")
+		return Photo{}, errors.New("this photo is too large after resizing; try a smaller one")
 	}
 	return Photo{Alt: alt, Width: w, Height: h, Data: encoded.Bytes()}, nil
 }

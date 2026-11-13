@@ -13,7 +13,7 @@
       choose(event) {
         const files = Array.from(event.target.files || []);
         if (files.length > 4 || files.some(file => file.size > 5 * 1024 * 1024 || !['image/jpeg', 'image/png'].includes(file.type))) {
-          this.error = 'Choose up to four JPEG or PNG photos, no larger than 5 MiB each.';
+          this.error = 'Choose up to four JPEG or PNG photos, no larger than 5 MB each.';
           this.sync(); return;
         }
         this.photos.forEach(photo => env.URL.revokeObjectURL(photo.preview));

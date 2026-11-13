@@ -153,8 +153,11 @@ func ValidateCredentials(username, password string) error {
 	if !usernamePattern.MatchString(username) {
 		return errors.New("use 3–32 lowercase letters, numbers or underscores; start with a letter")
 	}
-	if !utf8.ValidString(password) || utf8.RuneCountInString(password) < 12 || len(password) > 72 {
-		return errors.New("choose at least 12 characters, using no more than 72 bytes")
+	if !utf8.ValidString(password) || utf8.RuneCountInString(password) < 12 {
+		return errors.New("choose a password with at least 12 characters")
+	}
+	if len(password) > 72 {
+		return errors.New("use a shorter password")
 	}
 	return nil
 }

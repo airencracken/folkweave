@@ -243,7 +243,8 @@ func (a *App) middleware(next http.Handler) http.Handler {
 			}
 			for key, values := range r.PostForm {
 				if key != "photo_alt" && len(values) != 1 {
-					a.formError(w, r, 400, "Send each form field once.")
+					slog.Warn("rejected form with a repeated field", "path", r.URL.Path, "field", key)
+					a.formError(w, r, 400, malformedSubmission)
 					return
 				}
 			}
@@ -287,7 +288,7 @@ func (a *App) redirect(w http.ResponseWriter, r *http.Request, target string) {
 }
 func (a *App) page(r *http.Request, p Page) Page {
 	if state(r).User != nil && state(r).User.Owner() && (p.View == "settings" || p.View == "metrics") {
-		p.Overview = admin.WithOperations(p.Overview, a.config.Version, a.Backups.Status(), "FOLKWEAVE_")
+		p.Overview = admin.WithOperations(p.Overview, a.config.Version, ownerBackupStatus(a.Backups.Status()), "FOLKWEAVE_")
 	}
 	p.User = state(r).User
 	p.Overview.Timezone = preferredTimezone(r)
@@ -338,11 +339,11 @@ func (a *App) fail(w http.ResponseWriter, r *http.Request, err error) {
 	case errors.Is(err, ErrForbidden):
 		status, message = 403, "You do not have permission to do that."
 	case errors.Is(err, ErrConflict):
-		status, message = 409, err.Error()
+		status, message = 409, sentence(err.Error())
 	case errors.Is(err, ErrInvalid):
 		status, message = 422, "Check the submitted details and try again."
 	case errors.Is(err, ErrInvitation) || errors.Is(err, ErrUsername):
-		status, message = 422, err.Error()
+		status, message = 422, sentence(err.Error())
 	default:
 		slog.Error("request failed", "path", r.URL.Path, "error", err)
 	}
