@@ -146,7 +146,7 @@ func TestAccountAndSettingsNavigation(t *testing.T) {
 		if w.Code != 200 || !strings.Contains(w.Body.String(), "<h1>"+page.heading+"</h1>") {
 			t.Fatalf("missing clear page heading on %s: %d", page.path, w.Code)
 		}
-		for _, control := range []string{`href="/account"`, `>Your account</a>`, `href="/settings">Settings</a>`, `href="/account/export">Export your data</a>`} {
+		for _, control := range []string{`href="/account"`, `>Your account</a>`, `href="/settings"`, `>Admin</a>`} {
 			if !strings.Contains(w.Body.String(), control) {
 				t.Fatal("missing navigation control", page.path, control)
 			}

@@ -38,3 +38,12 @@ func sentence(message string) string {
 	}
 	return message
 }
+
+// logValue bounds client-supplied text before it reaches the server log.
+func logValue(value string) string {
+	const limit = 64
+	if len(value) <= limit {
+		return value
+	}
+	return value[:limit] + "..."
+}

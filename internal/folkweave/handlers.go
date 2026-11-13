@@ -145,7 +145,7 @@ func (a *App) createPost(w http.ResponseWriter, r *http.Request) {
 		}
 		for name := range r.MultipartForm.File {
 			if name != "photos" {
-				slog.Warn("rejected post with an unexpected attachment field", "field", name)
+				slog.Warn("rejected post with an unexpected attachment field", "field", logValue(name))
 				a.postError(w, r, body, key, malformedSubmission)
 				return
 			}
@@ -285,7 +285,7 @@ func (a *App) photo(w http.ResponseWriter, r *http.Request) {
 	if values, ok := r.URL.Query()["width"]; ok {
 		width, parseErr := strconv.Atoi(r.URL.Query().Get("width"))
 		if len(values) != 1 || parseErr != nil || width != 320 && width != 640 && width != 960 {
-			slog.Info("rejected photo preview width", "width", r.URL.Query().Get("width"))
+			slog.Info("rejected photo preview width", "width", logValue(r.URL.Query().Get("width")))
 			http.Error(w, "That photo size is not available.", http.StatusBadRequest)
 			return
 		}

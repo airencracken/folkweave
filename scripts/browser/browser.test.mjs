@@ -52,8 +52,14 @@ test('mascot and plain account controls work on desktop and mobile', async () =>
     await act(page.getByRole('link', { name: 'Your account', exact: true }), 'click');
     await page.getByRole('heading', { name: 'Account', exact: true }).waitFor();
     await page.getByRole('heading', { name: 'Export your data', exact: true }).waitFor();
-    await act(page.getByRole('link', { name: 'Settings', exact: true }), 'click');
-    await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor();
+    await page.getByRole('heading', { name: 'Times and dates', exact: true }).waitFor();
+    await act(page.getByRole('navigation', { name: 'Main', exact: true }).getByRole('link', { name: 'Admin', exact: true }), 'click');
+    const adminNav = page.getByRole('navigation', { name: 'Administration', exact: true });
+    for (const [name, heading] of [['Invitations', 'Invitations'], ['Metrics', 'Instance metrics'], ['Settings', 'Settings']]) {
+      await act(adminNav.getByRole('link', { name, exact: true }), 'click');
+      await page.getByRole('heading', { name: heading, exact: true }).waitFor();
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name} overflow`);
+    }
     await page.getByRole('heading', { name: 'Backups', exact: true }).waitFor();
     assert.equal(await page.getByLabel('Group name', { exact: true }).inputValue(), 'The Sunday Folks');
     assert.equal(await page.locator('.brand img').evaluate(img => img.complete && img.naturalWidth === 256), true);
@@ -117,6 +123,39 @@ for (const javascript of [true, false]) for (const width of [320, 390, 768, 1280
   });
 }
 
+test('theme picker applies before paint, persists, and survives blocked storage', async () => {
+  const context = await browser.newContext({ colorScheme: 'light' });
+  const page = await context.newPage(); await signIn(page);
+  const background = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  const light = await background();
+  await act(page.getByLabel('Color theme', { exact: true }), 'selectOption', 'dark');
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'dark');
+  const dark = await background();
+  assert.notEqual(dark, light);
+  const painted = [];
+  await page.exposeFunction('reportTheme', value => painted.push(value));
+  await page.addInitScript(() => new MutationObserver((_, observer) => { if (document.body) { window.reportTheme(document.documentElement.dataset.theme || 'system'); observer.disconnect(); } }).observe(document, { childList: true, subtree: true }));
+  await page.goto(origin + '/people');
+  assert.equal(painted[0], 'dark', 'saved theme applied before the body rendered');
+  assert.equal(await background(), dark);
+  await page.goto(origin + '/admin/metrics');
+  assert.equal(await page.locator('.comfy-admin-section').first().evaluate(element => getComputedStyle(element).backgroundColor), await page.locator('main').evaluate(() => getComputedStyle(document.querySelector('.site-header')).backgroundColor), 'metrics panels use the Folkweave paper colour');
+  await context.close();
+  const blocked = await browser.newContext({ colorScheme: 'dark' });
+  await blocked.addInitScript(() => { Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('blocked', 'SecurityError'); } }); });
+  const second = await blocked.newPage(); const errors = []; second.on('pageerror', error => errors.push(error.message));
+  await signIn(second);
+  assert.equal(await second.evaluate(() => document.documentElement.hasAttribute('data-theme')), false);
+  await act(second.getByLabel('Color theme', { exact: true }), 'selectOption', 'light');
+  assert.equal(await second.evaluate(() => document.documentElement.dataset.theme), 'light');
+  assert.deepEqual(errors, []);
+  await blocked.close();
+  const noscript = await browser.newContext({ javaScriptEnabled: false });
+  const third = await noscript.newPage(); await third.goto(origin + '/login');
+  assert.equal(await third.getByLabel('Color theme', { exact: true }).isVisible(), false, 'picker hidden without JavaScript');
+  await noscript.close();
+});
+
 test('Alpine ordering survives a timeline update without losing the draft', async () => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
   const page = await context.newPage(); await signIn(page);
@@ -139,7 +178,7 @@ test('Alpine ordering survives a timeline update without losing the draft', asyn
   await context.close();
 });
 
-test('invitation joins the private gathering without exposing owner controls', async () => {
+test('invitation joins the private group without exposing owner controls', async () => {
   const owner = await browser.newContext(); const page = await owner.newPage(); await signIn(page);
   await page.goto(origin + '/invitations'); await act(page.getByRole('button', { name: 'Create invitation', exact: true }), 'click');
   const invitation = await page.getByLabel('Invitation link', { exact: true }).inputValue();

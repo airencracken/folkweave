@@ -30,7 +30,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-//go:embed templates/*.html static/*.css static/app.js static/*.svg static/loom.webp static/favicon-32.png static/*.min.js static/*.LICENSE static/vendor.json
+//go:embed templates/*.html static/*.css static/app.js static/theme.js static/*.svg static/loom.webp static/favicon-32.png static/*.min.js static/*.LICENSE static/vendor.json
 var assets embed.FS
 
 type Config struct {
@@ -243,7 +243,7 @@ func (a *App) middleware(next http.Handler) http.Handler {
 			}
 			for key, values := range r.PostForm {
 				if key != "photo_alt" && len(values) != 1 {
-					slog.Warn("rejected form with a repeated field", "path", r.URL.Path, "field", key)
+					slog.Warn("rejected form with a repeated field", "path", r.URL.Path, "field", logValue(key))
 					a.formError(w, r, 400, malformedSubmission)
 					return
 				}

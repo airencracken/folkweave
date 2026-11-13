@@ -14,7 +14,7 @@ test:
 	go test ./...
 
 test-js:
-	node --test internal/folkweave/static/app.test.cjs
+	node --test internal/folkweave/static/app.test.cjs internal/folkweave/static/theme.test.cjs
 
 test-browser: build
 	npm --prefix scripts/browser test
