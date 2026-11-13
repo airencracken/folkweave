@@ -4,6 +4,14 @@ Back up the stopped data directory before every upgrade, and keep that copy
 until you are sure you will not go back. An older Folkweave cannot open a
 database that a newer one has upgraded.
 
+## 0.7.1
+
+- Photo uploads accept up to 5 MiB again, and sizes are shown in MiB.
+
+### For operators
+
+- Built with Comfylib 0.7.1.
+
 ## 0.7.0
 
 - Owners reach everything from **Admin**: Settings, Invitations, and Metrics.
