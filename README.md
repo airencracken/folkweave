@@ -69,7 +69,7 @@ The timeline is newest first and has an end. Posting, replying, and every
 other form work without JavaScript.
 
 Folkweave resizes shared photos to at most 1920 pixels, converts them to JPEG,
-and strips their metadata. Each upload can be up to 5 MB and 20 megapixels.
+and strips their metadata. Each upload can be up to 5 MiB and 20 megapixels.
 **Folkweave does not keep your originals**, so keep them somewhere else, such
 as Imvault.
 

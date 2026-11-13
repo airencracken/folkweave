@@ -12,7 +12,7 @@
       },
       choose(event) {
         const input = event.target, data = input.dataset || {};
-        const limit = Number(data.maxBytes) || 5000000, label = data.maxLabel || '5 MB';
+        const limit = Number(data.maxBytes) || 5242880, label = data.maxLabel || '5 MiB';
         const files = Array.from(input.files || []);
         if (files.length > 4 || files.some(file => file.size > limit || !['image/jpeg', 'image/png'].includes(file.type))) {
           this.error = 'Choose up to four JPEG or PNG photos, no larger than ' + label + ' each.';

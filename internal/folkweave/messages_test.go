@@ -10,14 +10,16 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/airencracken/comfylib/autobackup"
 	"github.com/airencracken/comfylib/password"
+	"github.com/airencracken/comfylib/ui"
 )
 
-var internalWording = []string{"MiB", "72 bytes", "Unexpected attachment", "Send each form field", "supported photo width", "normalized photo"}
+var internalWording = []string{" MB", "72 bytes", "Unexpected attachment", "Send each form field", "supported photo width", "normalized photo"}
 
 func assertPlain(t *testing.T, label, body string) {
 	t.Helper()
@@ -148,7 +150,7 @@ func TestPhotoWidthAndComposerUsePlainWording(t *testing.T) {
 		assertPlain(t, "photo width", w.Body.String())
 	}
 	timeline := owner.request("GET", "/", nil, nil).Body.String()
-	if !strings.Contains(timeline, "5 MB each") || !strings.Contains(timeline, `data-max-bytes="5000000"`) {
+	if !strings.Contains(timeline, "5 MiB each") || !strings.Contains(timeline, `data-max-bytes="5242880"`) || !strings.Contains(timeline, `data-max-label="5 MiB"`) {
 		t.Fatal("composer size limit missing")
 	}
 	assertPlain(t, "timeline", timeline)
@@ -190,6 +192,36 @@ func TestOwnerSeesBackupSummaryInsteadOfRawError(t *testing.T) {
 		}
 		if strings.Count(body, autobackup.FailureSummary) != 1 {
 			t.Fatal(path, "missing backup summary")
+		}
+	}
+}
+
+// The cap, every place it is shown, and the client-side fallback must agree.
+func TestPhotoLimitAndCopyAgree(t *testing.T) {
+	if MaxPhotoBytes != 5*1024*1024 {
+		t.Fatal("photo cap must be 5 MiB", MaxPhotoBytes)
+	}
+	label := ui.Size(MaxPhotoBytes)
+	if label != "5 MiB" {
+		t.Fatal("label", label)
+	}
+	if _, err := NormalizePhoto(bytes.Repeat([]byte{1}, MaxPhotoBytes+1), ""); err == nil || !strings.Contains(err.Error(), label) {
+		t.Fatal("oversized photo error", err)
+	}
+	script, err := assets.ReadFile("static/app.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(script), "|| "+strconv.Itoa(MaxPhotoBytes)+",") || !strings.Contains(string(script), "'"+label+"'") {
+		t.Fatal("app.js fallback differs from the server limit")
+	}
+	for _, path := range []string{"../../README.md"} {
+		text, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(text), "up to "+label) {
+			t.Fatal(path, "does not state the photo limit as", label)
 		}
 	}
 }

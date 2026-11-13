@@ -16,7 +16,8 @@ import (
 	xdraw "golang.org/x/image/draw"
 )
 
-const MaxPhotoBytes = 5_000_000
+// MaxPhotoBytes is the upload cap per photo: 5 MiB.
+const MaxPhotoBytes = 5 << 20
 
 func newPhotoID() (string, error) {
 	var data [16]byte
