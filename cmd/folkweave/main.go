@@ -295,7 +295,7 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 			return helpError(err)
 		}
 		if *source == "" || f.NArg() != 0 {
-			return errors.New("choose --from snapshot/folkweave.db and a fresh --data directory")
+			return errors.New("choose --from snapshot/folkweave.db and a fresh --data-dir directory")
 		}
 		return restore(ctx, *source, *data, out)
 	default:
