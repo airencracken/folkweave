@@ -41,18 +41,18 @@ type Config struct {
 	TrustedProxies string
 }
 type App struct {
-	store     *Store
-	config    Config
-	base      *url.URL
-	handler   http.Handler
-	templates *displaytime.Templates
-	dummyHash []byte
-	resolver  clientip.Resolver
-	limiter   rateLimiter
-	uploads   chan struct{}
-	monitor   *analytics.Monitor
-	problems  problem.Writer
-	Backups   *autobackup.Runner
+	store            *Store
+	config           Config
+	base             *url.URL
+	handler          http.Handler
+	templates        *displaytime.Templates
+	dummyHash        []byte
+	resolver         clientip.Resolver
+	limiter          rateLimiter
+	uploads, exports chan struct{}
+	monitor          *analytics.Monitor
+	problems         problem.Writer
+	Backups          *autobackup.Runner
 }
 type requestState struct {
 	User *User
@@ -121,7 +121,7 @@ func NewApp(store *Store, c Config) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &App{store: store, config: c, base: u, templates: bound, dummyHash: dummy, resolver: clientip.Resolver{Trusted: trusted}, uploads: make(chan struct{}, 2), monitor: analytics.NewMonitor(store.db)}
+	a := &App{store: store, config: c, base: u, templates: bound, dummyHash: dummy, resolver: clientip.Resolver{Trusted: trusted}, uploads: make(chan struct{}, 2), exports: make(chan struct{}, 1), monitor: analytics.NewMonitor(store.db)}
 	a.problems = problem.Writer{Layout: func(w http.ResponseWriter, r *http.Request, page problem.Page) error {
 		return a.renderTo(w, r, page.Status, Page{View: "error-page", Title: page.Title, Error: page.Message})
 	}}

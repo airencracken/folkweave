@@ -1,9 +1,7 @@
 package folkweave
 
 import (
-	"archive/zip"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -542,78 +540,4 @@ func (a *App) apiPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.json(w, post)
-}
-
-func (a *App) exportAccount(w http.ResponseWriter, r *http.Request) {
-	user := *state(r).User
-	posts := []Post{}
-	after := ""
-	for {
-		page, err := a.store.Posts(r.Context(), user.ID, after, false, user.ID)
-		if err != nil {
-			a.fail(w, r, err)
-			return
-		}
-		posts = append(posts, page.Posts...)
-		if page.Next == "" {
-			break
-		}
-		after = page.Next
-	}
-	rows, err := a.store.db.QueryContext(r.Context(), "SELECT id,post_id,body,created_at FROM replies WHERE user_id=? ORDER BY id", user.ID)
-	if err != nil {
-		a.fail(w, r, err)
-		return
-	}
-	type exportedReply struct {
-		ID, PostID, CreatedAt int64
-		Body                  string
-	}
-	replies := []exportedReply{}
-	for rows.Next() {
-		var v exportedReply
-		if err = rows.Scan(&v.ID, &v.PostID, &v.Body, &v.CreatedAt); err != nil {
-			rows.Close()
-			a.fail(w, r, err)
-			return
-		}
-		replies = append(replies, v)
-	}
-	err = rows.Err()
-	rows.Close()
-	if err != nil {
-		a.fail(w, r, err)
-		return
-	}
-	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", `attachment; filename="folkweave-account.zip"`)
-	archive := zip.NewWriter(w)
-	defer archive.Close()
-	writer, err := archive.Create("account.json")
-	if err != nil {
-		return
-	}
-	if err = json.NewEncoder(writer).Encode(struct {
-		Version int             `json:"version"`
-		User    User            `json:"user"`
-		Posts   []Post          `json:"posts"`
-		Replies []exportedReply `json:"replies"`
-	}{1, user, posts, replies}); err != nil {
-		return
-	}
-	for _, post := range posts {
-		for _, photo := range post.Photos {
-			v, err := a.store.Photo(r.Context(), photo.ID)
-			if err != nil {
-				return
-			}
-			writer, err := archive.Create("photos/" + v.ID + ".jpg")
-			if err != nil {
-				return
-			}
-			if _, err = writer.Write(v.Data); err != nil {
-				return
-			}
-		}
-	}
 }
