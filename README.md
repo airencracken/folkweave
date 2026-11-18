@@ -8,7 +8,7 @@ Folkweave is a small, self-hosted Comfyware app for friends, family, or any
 group who choose each other. Each installation has its own accounts and
 invite-only membership. Members can see everything the group has posted.
 
-Current release: **[0.7.3](https://github.com/airencracken/folkweave/releases/tag/v0.7.3)**. [What's new](docs/release-notes.md)
+Current release: **[0.8.0](https://github.com/airencracken/folkweave/releases/tag/v0.8.0)**. [What's new](docs/release-notes.md)
 
 <br clear="right">
 
@@ -59,8 +59,10 @@ before you invite anyone.
 ## What members can do
 
 - Join with an invitation link and see the group's earlier posts.
-- Post short or long text, links, and up to four photos with descriptions.
+- Post short or long text, links, and up to ten photos with descriptions.
 - Reply, save posts for later, and edit or remove their own words.
+- Repost another member’s post or reply to the timeline, with credit and a link
+  to the original.
 - Pick a display timezone under **Account**, in **Times and dates**.
 - Choose System, Light, or Dark, and a color palette, from the **Account** menu.
 - Download their own posts, photos, and replies from **Account**.

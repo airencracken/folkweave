@@ -15,9 +15,15 @@ and come back to earlier posts. Each post has a stable address. The timeline is
 newest first. Replies and edits keep a post in place. **Older posts** loads
 the next page. New posts wait behind a button so the page does not jump.
 
+Members can repost someone else's post or reply once to the same timeline.
+The repost credits the author and links to the original. Edits are reflected
+in the repost. If the source is removed, the repost says so and keeps its
+own discussion.
+
 Saved posts are personal. Profiles show who is speaking. Owners can close
 invitations, suspend members, and remove posts and replies. Authors can edit
-and remove their own. Suspending a member ends their sessions.
+their posts and delete them from the **More** menu. Authors can also remove
+their own replies. Suspending a member ends their sessions.
 
 Photos are stored in the SQLite database. Folkweave runs on its own, without
 Imvault, Witmoot, or Songstead.
@@ -48,7 +54,7 @@ or parent-approved feed.
 ## Attention and ownership
 
 The timeline has an end. Folkweave is not federated and has no followers,
-boosts, ranking, or engagement targets. Members choose when to visit. Members
+ranking, or engagement targets. Members choose when to visit. Members
 can export their own contributions, and the server makes verified backups.
 
 Possible next steps: a saved reading position, more account self-service,

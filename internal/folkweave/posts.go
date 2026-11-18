@@ -16,7 +16,7 @@ import (
 
 const PageSize = 20
 const MaxPostCharacters = 10000
-const MaxPhotos = 4
+const MaxPhotos = 10
 
 type Photo struct {
 	ID     string `json:"id"`
@@ -57,6 +57,7 @@ type Post struct {
 	ReplyCount int       `json:"reply_count"`
 	Saved      bool      `json:"saved"`
 	Replies    []Reply   `json:"replies,omitempty"`
+	Repost     *Repost   `json:"repost,omitempty"`
 }
 
 func (p Post) URL() string { return fmt.Sprintf("/posts/%d", p.ID) }
@@ -170,15 +171,29 @@ func (s *Store) CreatePost(ctx context.Context, author int64, body, key string, 
 const postSelect = `SELECT p.id,p.body,p.created_at,p.edited_at IS NOT NULL,p.revision,
  u.id,u.username,u.name,u.bio,u.role,u.disabled,
  (SELECT count(*) FROM replies r WHERE r.post_id=p.id),
- EXISTS(SELECT 1 FROM saved s WHERE s.post_id=p.id AND s.user_id=?)
- FROM posts p JOIN users u ON u.id=p.user_id `
+ EXISTS(SELECT 1 FROM saved s WHERE s.post_id=p.id AND s.user_id=?),
+ coalesce(p.repost_kind,''),coalesce(original.id,reply.post_id,0),coalesce(reply.id,0),
+ coalesce(source.id,0),coalesce(source.name,''),coalesce(original.body,reply.body,'')
+ FROM posts p JOIN users u ON u.id=p.user_id
+ LEFT JOIN posts original ON original.id=p.repost_post_id
+ LEFT JOIN replies reply ON reply.id=p.repost_reply_id
+ LEFT JOIN users source ON source.id=coalesce(original.user_id,reply.user_id) `
 
 func scanPost(row scanner) (Post, error) {
 	var p Post
 	var stamp int64
-	err := row.Scan(&p.ID, &p.Body, &stamp, &p.Edited, &p.Revision, &p.Author.ID, &p.Author.Username, &p.Author.Name, &p.Author.Bio, &p.Author.Role, &p.Author.Disabled, &p.ReplyCount, &p.Saved)
+	var share Repost
+	var original RepostOriginal
+	err := row.Scan(&p.ID, &p.Body, &stamp, &p.Edited, &p.Revision, &p.Author.ID, &p.Author.Username, &p.Author.Name, &p.Author.Bio, &p.Author.Role, &p.Author.Disabled, &p.ReplyCount, &p.Saved,
+		&share.Kind, &share.PostID, &share.ReplyID, &original.AuthorID, &original.AuthorName, &original.Body)
 	p.Created = time.UnixMilli(stamp)
 	p.Photos = []Photo{}
+	if share.Kind != "" {
+		p.Repost = &share
+		if share.PostID != 0 {
+			share.Original = &original
+		}
+	}
 	return p, err
 }
 func (s *Store) photos(ctx context.Context, id int64) ([]Photo, error) {
@@ -242,8 +257,7 @@ func (s *Store) Posts(ctx context.Context, viewer int64, after string, saved boo
 		out.Next = encodeCursor(cursor{Before: out.Posts[len(out.Posts)-1].ID, Anchor: c.Anchor})
 	}
 	for i := range out.Posts {
-		out.Posts[i].Photos, err = s.photos(ctx, out.Posts[i].ID)
-		if err != nil {
+		if err := s.loadPostPhotos(ctx, &out.Posts[i]); err != nil {
 			return out, err
 		}
 	}
@@ -254,8 +268,7 @@ func (s *Store) Post(ctx context.Context, viewer, id int64) (Post, error) {
 	if err != nil {
 		return p, err
 	}
-	p.Photos, err = s.photos(ctx, id)
-	if err != nil {
+	if err = s.loadPostPhotos(ctx, &p); err != nil {
 		return p, err
 	}
 	rows, err := s.db.QueryContext(ctx, `SELECT r.id,r.body,r.created_at,u.id,u.username,u.name,u.bio,u.role,u.disabled FROM replies r JOIN users u ON u.id=r.user_id WHERE r.post_id=? ORDER BY r.id LIMIT 500`, id)
@@ -389,10 +402,11 @@ func (s *Store) EditPost(ctx context.Context, actor, id, revision int64, body st
 	}
 	var owner int64
 	var photos int
-	if err = tx.QueryRowContext(ctx, "SELECT user_id,(SELECT count(*) FROM photos WHERE post_id=posts.id) FROM posts WHERE id=?", id).Scan(&owner, &photos); err != nil {
+	var repost bool
+	if err = tx.QueryRowContext(ctx, "SELECT user_id,(SELECT count(*) FROM photos WHERE post_id=posts.id),repost_kind IS NOT NULL FROM posts WHERE id=?", id).Scan(&owner, &photos, &repost); err != nil {
 		return err
 	}
-	if owner != actor {
+	if owner != actor || repost {
 		return ErrForbidden
 	}
 	if body == "" && photos == 0 {

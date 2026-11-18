@@ -109,25 +109,8 @@ func Open(dataDir string) (*Store, error) {
 		return nil, err
 	}
 	db.SetMaxOpenConns(1)
-	var known bool
-	if err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM sqlite_schema WHERE type='table' AND name='schema_version')").Scan(&known); err != nil {
-		db.Close()
-		return nil, err
-	}
-	if known {
-		var n, low, high int
-		if err = db.QueryRow("SELECT count(*),coalesce(min(version),0),coalesce(max(version),0) FROM schema_version").Scan(&n, &low, &high); err != nil {
-			db.Close()
-			return nil, err
-		}
-		if n != 1 || low != 1 || high != 1 {
-			db.Close()
-			return nil, errors.New("unsupported Folkweave schema version")
-		}
-	}
-	if _, err = db.Exec(schema); err != nil {
-		db.Close()
-		return nil, err
+	if err := initializeSchema(context.Background(), db); err != nil {
+		return nil, errors.Join(err, db.Close())
 	}
 	if err := displaytime.Initialize(context.Background(), db); err != nil {
 		return nil, errors.Join(err, db.Close())
@@ -554,7 +537,7 @@ func (s *Store) Check(ctx context.Context) error {
 	if err := s.db.QueryRowContext(ctx, "SELECT version FROM schema_version").Scan(&version); err != nil {
 		return err
 	}
-	if version != 1 {
+	if version != schemaVersion {
 		return errors.New("unsupported database schema")
 	}
 	return nil

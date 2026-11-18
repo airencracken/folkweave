@@ -4,6 +4,18 @@ Back up the stopped data directory before every upgrade, and keep that copy
 until you are sure you will not go back. An older Folkweave cannot open a
 database that a newer one has upgraded.
 
+## 0.8.0
+
+- Repost another member's post or reply to the timeline with a link to the original.
+- Share up to ten photos with a post.
+- Delete a post from its **More** menu after confirming.
+
+### For operators
+
+- Startup migrates the database and rewrites the photo and preview tables. Back
+  up the data directory and allow disk space for the rewrite.
+- Raise any reverse proxy request body limit for Folkweave to 51 MiB.
+
 ## 0.7.3
 
 - Account downloads include all listed photos or report an error. Archive preparation runs one export at a time.

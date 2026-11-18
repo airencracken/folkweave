@@ -148,7 +148,7 @@ func (a *App) createPost(w http.ResponseWriter, r *http.Request) {
 	if r.MultipartForm != nil {
 		files, alts := r.MultipartForm.File["photos"], r.PostForm["photo_alt"]
 		if len(files) > MaxPhotos || len(alts) > MaxPhotos {
-			a.postError(w, r, body, key, "Choose up to four photos.")
+			a.postError(w, r, body, key, fmt.Sprintf("Choose up to %d photos.", MaxPhotos))
 			return
 		}
 		for name := range r.MultipartForm.File {
@@ -355,7 +355,7 @@ func (a *App) editForm(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, r, err)
 		return
 	}
-	if post.Author.ID != state(r).User.ID {
+	if post.Author.ID != state(r).User.ID || post.Repost != nil {
 		a.fail(w, r, ErrForbidden)
 		return
 	}

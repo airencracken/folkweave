@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
-let server, browser, origin;
+let server, browser, origin, signedInState;
 before(async () => {
   const port=await reservePort();origin='http://127.0.0.1:'+port;
   server=await spawnServer(process.env.FOLKWEAVE_BINARY || root+'dist/folkweave',['demo','--listen','127.0.0.1:'+port],{env:{...process.env,FOLKWEAVE_BACKUP_INTERVAL:'0',FOLKWEAVE_APPS:'[{"id":"witmoot","url":"https://suite.example.org"}]'},health:origin+'/healthz'});
@@ -17,6 +17,7 @@ before(async () => {
   await mkdir(root + 'dist/screenshots', { recursive: true });
   const preview = await browser.newContext({ viewport: {width:1280,height:1100} });
   const page = await preview.newPage(); await signIn(page);
+  signedInState = await preview.storageState();
   await page.screenshot({path:root+'dist/screenshots/first-pass-desktop.png'});
   await page.setViewportSize({width:390,height:1000});
   await page.screenshot({path:root+'dist/screenshots/first-pass-mobile.png'});
@@ -98,7 +99,7 @@ for (const javascript of [true, false]) for (const width of [320, 390, 768, 1280
     if (javascript) {
       await act(page.locator('.photo-draft input'), 'fill', 'A woodland path with a pale sky');
       assert.equal(await page.locator('.photo-draft').count(), 1);
-    } else await act(page.getByLabel('First photo description', { exact: true }), 'fill', 'A woodland path with a pale sky');
+    } else await act(page.getByLabel('Photo 1 description', { exact: true }), 'fill', 'A woodland path with a pale sky');
     await act(page.getByRole('button', { name: 'Share', exact: true }), 'click');
     const post = page.locator('#feed .post').filter({ hasText: text });
     await post.waitFor();
@@ -109,7 +110,7 @@ for (const javascript of [true, false]) for (const width of [320, 390, 768, 1280
     await act(page.getByRole('button', { name: 'Post reply', exact: true }), 'click');
     await page.locator('.reply .body-text').filter({ hasText: 'Good to see this here.' }).waitFor();
     assert.equal(await page.locator('#reply-body').inputValue(), '');
-    assert.equal(await page.locator('#remove-post').count(), 1, 'reply refresh duplicated post controls');
+    assert.equal(await page.locator('.remove-post').count(), 1, 'reply refresh duplicated post controls');
     await act(page.getByRole('button', { name: 'Save', exact: true }), 'click');
     await page.getByRole('button', { name: 'Saved', exact: true }).waitFor();
     await act(page.getByRole('link', { name: 'Saved', exact: true }), 'click');
@@ -120,6 +121,62 @@ for (const javascript of [true, false]) for (const width of [320, 390, 768, 1280
     if (javascript) assert.deepEqual(await page.evaluate(() => window.cspViolations), [], 'CSP violations');
     await page.screenshot({ path: root + `dist/screenshots/saved-${javascript}-${width}.png`, fullPage: true });
     await context.close();
+  });
+}
+
+for (const javascript of [true, false]) {
+  test(`reposts, ten photos, and post deletion with JavaScript ${javascript ? 'on' : 'off'}`, async () => {
+    const context = await browser.newContext({ storageState: signedInState, javaScriptEnabled: javascript, viewport: { width: 320, height: 960 } });
+    try {
+      const page = await context.newPage();
+      await page.goto(origin + '/');
+      const original = page.locator('#feed .post').filter({ hasText: 'Anyone fancy a walk on Saturday?' });
+      await original.getByRole('button', { name: 'Repost', exact: true }).click();
+      const originalPost = page.getByRole('link', { name: 'Original post', exact: true });
+      await originalPost.waitFor();
+      assert.equal(await page.locator('.repost-source .author').innerText(), 'Rowan');
+      await originalPost.click();
+      const reply = page.locator('.reply').filter({ hasText: 'I can bring the flask.' });
+      const replyAnchor = '#' + await reply.getAttribute('id');
+      await reply.getByRole('button', { name: 'Repost reply', exact: true }).click();
+      const originalReply = page.getByRole('link', { name: 'Original reply', exact: true });
+      await originalReply.waitFor();
+      assert.equal(await page.locator('.repost-source .author').innerText(), 'Jules');
+      await originalReply.click();
+      assert.equal(new URL(page.url()).hash, replyAnchor);
+
+      await page.getByRole('link', { name: 'Back to the timeline', exact: true }).click();
+      assert.equal(await page.locator('#feed .repost-source').count(), 2);
+      const source = await page.locator('#feed .photos img').first().getAttribute('src');
+      const response = await context.request.get(origin + source);
+      assert.equal(response.status(), 200);
+      const image = await response.body();
+      const body = `Ten photos with JavaScript ${javascript ? 'on' : 'off'}.`;
+      const description = 'The last photo in the gallery';
+      await page.locator('#post-body').fill(body);
+      const photos = Array.from({ length: 10 }, (_, i) => ({ name: `photo-${i + 1}.jpg`, mimeType: 'image/jpeg', buffer: image }));
+      await page.locator('#photos').setInputFiles(photos);
+      if (javascript) {
+        const drafts = page.locator('.photo-draft input');
+        await drafts.nth(9).fill(description);
+        assert.equal(await drafts.count(), 10);
+      } else {
+        await act(page.getByLabel('Photo 10 description', { exact: true }), 'fill', description);
+      }
+      await page.getByRole('button', { name: 'Share', exact: true }).click();
+      const post = page.locator('#feed .post').filter({ hasText: body });
+      const gallery = post.locator('.photos img');
+      await gallery.nth(9).waitFor();
+      assert.equal(await gallery.count(), 10);
+      assert.equal(await gallery.nth(9).getAttribute('alt'), description);
+      await post.locator('.post-menu > summary').click();
+      await post.locator('.remove-post > summary').click();
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      await post.getByRole('button', { name: 'Delete post and replies', exact: true }).click();
+      await post.waitFor({ state: 'detached' });
+    } finally {
+      await context.close();
+    }
   });
 }
 
@@ -194,7 +251,7 @@ test('invitation joins the private group without exposing owner controls', async
 
 test('rapid reply submits issue one request and display one saved reply', async () => {
   const context = await browser.newContext(); const page = await context.newPage(); await signIn(page);
-  await act(page.locator('#feed .post').first().getByRole('link', { name: /repl/i }).first(), 'click');
+  await act(page.locator('#feed .post').first().locator('.post-footer > a'), 'click');
   await act(page.locator('#reply-body'), 'fill', 'Only once, even when the connection is slow.');
   let requests = 0;
   await page.route('**/posts/*/replies', async route => { requests++; const response = await route.fetch(); await new Promise(resolve => setTimeout(resolve, 200)); await route.fulfill({ response }); });

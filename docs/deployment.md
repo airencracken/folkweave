@@ -31,7 +31,8 @@ Backup settings are in [backups and recovery](automatic-backups.md), and the
 Apps menu and community sign-in settings in [Comfyware connections](suite.md).
 
 Proxy examples for Caddy, nginx, and Apache are in `deploy/`. Terminate TLS at
-the proxy and keep Folkweave's listener private.
+the proxy and keep Folkweave's listener private. If your proxy caps request
+bodies, allow at least 51 MiB for ten-photo posts, including form overhead.
 
 ## Account commands
 

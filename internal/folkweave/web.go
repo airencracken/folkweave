@@ -111,7 +111,7 @@ func NewApp(store *Store, c Config) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	functions := template.FuncMap{"themePicker": ui.ThemePicker, "photoLimit": func() string { return ui.Size(MaxPhotoBytes) }, "photoBytes": func() int64 { return MaxPhotoBytes }, "timezonePreference": displaytime.RenderPreference, "adminSummary": admin.Render, "linkify": linkify, "canEdit": func(u *User, p Post) bool { return u != nil && u.ID == p.Author.ID }, "canDelete": func(u *User, id int64) bool { return u != nil && (u.Owner() || u.ID == id) }}
+	functions := template.FuncMap{"themePicker": ui.ThemePicker, "photoLimit": func() string { return ui.Size(MaxPhotoBytes) }, "photoBytes": func() int64 { return MaxPhotoBytes }, "photoCount": func() int { return MaxPhotos }, "photoNumber": func(index int) int { return index + 1 }, "timezonePreference": displaytime.RenderPreference, "adminSummary": admin.Render, "linkify": linkify, "canEdit": func(u *User, p Post) bool { return u != nil && u.ID == p.Author.ID && p.Repost == nil }, "canDelete": func(u *User, id int64) bool { return u != nil && (u.Owner() || u.ID == id) }}
 	functions["postContext"] = func(root Page, post Post) Page { root.Post = post; return root }
 	t, err := template.New("pages").Funcs(suiteFuncs).Funcs(functions).Funcs(displaytime.New("UTC").Funcs()).ParseFS(assets, "templates/*.html")
 	if err != nil {
@@ -148,6 +148,8 @@ func NewApp(store *Store, c Config) (*App, error) {
 	mux.HandleFunc("POST /posts/{id}/delete", a.private(a.deletePost))
 	mux.HandleFunc("POST /posts/{id}/save", a.private(a.savePost))
 	mux.HandleFunc("POST /posts/{id}/replies", a.private(a.reply))
+	mux.HandleFunc("POST /posts/{id}/repost", a.private(a.repost(false)))
+	mux.HandleFunc("POST /replies/{id}/repost", a.private(a.repost(true)))
 	mux.HandleFunc("POST /replies/{id}/delete", a.private(a.deleteReply))
 	mux.HandleFunc("GET /photos/{id}", a.private(a.photo))
 	mux.HandleFunc("GET /people", a.private(a.people))

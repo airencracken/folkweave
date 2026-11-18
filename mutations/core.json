@@ -230,5 +230,45 @@
     "after": "mux",
     "package": "./internal/folkweave",
     "run": "^TestSignInsAndOpensAreNotRecorded$"
+  },
+  {
+    "name": "members can repost only another author's content",
+    "file": "internal/folkweave/reposts.go",
+    "before": "if author == actor {",
+    "after": "if false {",
+    "package": "./internal/folkweave",
+    "run": "^TestRepostsAreAtomicAndUnique$"
+  },
+  {
+    "name": "a deleted original leaves the repost discussion intact",
+    "file": "internal/folkweave/schema_v2.sql",
+    "before": "ADD COLUMN repost_post_id INTEGER REFERENCES posts(id) ON DELETE SET NULL",
+    "after": "ADD COLUMN repost_post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE",
+    "package": "./internal/folkweave",
+    "run": "^TestRepostSourceLifecycle$"
+  },
+  {
+    "name": "repost exports omit the original content",
+    "file": "internal/folkweave/export.go",
+    "before": "post.Repost.Original = nil",
+    "after": "if false { post.Repost.Original = nil }",
+    "package": "./internal/folkweave",
+    "run": "^TestRepostRoutesAndAPI$"
+  },
+  {
+    "name": "the schema accepts the tenth photo",
+    "file": "internal/folkweave/schema_v2.sql",
+    "before": "CHECK(position BETWEEN 0 AND 9)",
+    "after": "CHECK(position BETWEEN 0 AND 8)",
+    "package": "./internal/folkweave",
+    "run": "^TestTenPhotoUploadAndLimit$"
+  },
+  {
+    "name": "deleting a post requires confirmation",
+    "file": "internal/folkweave/handlers.go",
+    "before": "if r.PostForm.Get(\"confirmation\") != \"delete\" {\n\t\ta.fail(w, r, ErrInvalid)\n\t\treturn\n\t}\n\tif err = a.store.DeleteContent(r.Context(), state(r).User.ID, id, false); err != nil {",
+    "after": "if err = a.store.DeleteContent(r.Context(), state(r).User.ID, id, false); err != nil {",
+    "package": "./internal/folkweave",
+    "run": "^TestAuthorCanDeletePostFromTimeline$"
   }
 ]

@@ -75,7 +75,12 @@ func (s *Store) writeAccountArchive(ctx context.Context, dst io.Writer, user Use
 		if err != nil {
 			return err
 		}
-		data.Posts = append(data.Posts, page.Posts...)
+		for _, post := range page.Posts {
+			if post.Repost != nil {
+				post.Repost.Original = nil
+			}
+			data.Posts = append(data.Posts, post)
+		}
 		if page.Next == "" {
 			break
 		}

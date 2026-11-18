@@ -22,8 +22,14 @@ Timestamps are RFC 3339 in UTC. A photo has `id`, `alt`, `width`, and `height`;
 fetch its bytes from `/photos/ID`. An author has `id`, `username`, `name`,
 `bio`, and `role`. A reply has `id`, `author`, `body`, and `created_at`.
 
+A repost includes a `repost` object with `kind` (`post` or `reply`), the original
+`post_id`, and a `reply_id` for replies. Its `original` preview contains
+`author_id`, `author_name`, text in `body`, and photo metadata when present.
+When the original is removed, the repost has only `kind`.
+
 `saved` shows only your own saved state. Responses never include password
 hashes, session or invitation secrets, or photo bytes. An export holds only
-your own posts, photos, and replies.
+your own posts, photos, and replies. A repost in an export includes the source
+reference while the original remains available.
 
 Writes go through the browser forms.
