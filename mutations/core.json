@@ -1,5 +1,13 @@
 [
   {
+    "name": "password sign-in requires the enrolled authenticator",
+    "file": "internal/folkweave/handlers.go",
+    "before": "if a.finishFirstFactor(w, r, u.ID, hash) {",
+    "after": "if false && a.finishFirstFactor(w, r, u.ID, hash) {",
+    "package": "./internal/folkweave",
+    "run": "^TestAuthenticatorSignIn$"
+  },
+  {
     "name": "photo viewers require an authenticated member",
     "file": "internal/folkweave/web.go",
     "before": "mux.HandleFunc(\"GET /posts/{id}/photos/{photo}\", a.private(a.viewPhoto))",

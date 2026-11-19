@@ -13,6 +13,7 @@ import (
 	"github.com/airencracken/comfylib/problem"
 	"github.com/airencracken/comfylib/ratelimit"
 	"github.com/airencracken/comfylib/suite"
+	"github.com/airencracken/comfylib/twofactor"
 	"html/template"
 	"io/fs"
 	"log/slog"
@@ -41,6 +42,7 @@ type Config struct {
 	TrustedProxies string
 }
 type App struct {
+	factor           *twofactor.HTTP
 	readOnly         bool
 	store            *Store
 	config           Config
@@ -75,6 +77,8 @@ func state(r *http.Request) requestState {
 }
 
 type Page struct {
+	FactorEnabled                                                             bool
+	FactorContent                                                             template.HTML
 	TimezoneControl                                                           displaytime.Preference
 	TimezoneInput                                                             *string
 	TimezoneError, TimezoneNotice                                             string
@@ -199,6 +203,9 @@ func newApp(store *Store, c Config, readOnly bool) (*App, error) {
 	mux.HandleFunc("GET /api/v1/posts", a.private(a.apiPosts))
 	mux.HandleFunc("GET /api/v1/posts/{id}", a.private(a.apiPost))
 	mux.HandleFunc("GET /api/v1/me", a.private(func(w http.ResponseWriter, r *http.Request) { a.json(w, state(r).User) }))
+	if err = a.registerTwoFactor(mux); err != nil {
+		return nil, err
+	}
 	if err = a.registerSharedSignIn(mux); err != nil {
 		return nil, err
 	}
@@ -350,6 +357,7 @@ func (a *App) redirect(w http.ResponseWriter, r *http.Request, target string) {
 	http.Redirect(w, r, target, http.StatusSeeOther)
 }
 func (a *App) page(r *http.Request, p Page) Page {
+	p.FactorEnabled = a.factor.Enabled()
 	if state(r).User != nil && state(r).User.Owner() && (p.View == "settings" || p.View == "metrics") {
 		p.Overview = admin.WithOperations(p.Overview, a.config.Version, a.Backups.Status(), "FOLKWEAVE_")
 	}

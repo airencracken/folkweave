@@ -4,6 +4,17 @@ Back up the stopped data directory before every upgrade, and keep that copy
 until you are sure you will not go back. An older Folkweave cannot open a
 database that a newer one has upgraded.
 
+## 0.10.0
+
+- Optional authenticator-app sign-in is available on the account page after
+  the operator sets `FOLKWEAVE_TOTP_KEY`. Members can enroll, save recovery
+  codes, and choose whether to use the feature.
+- An enrolled account needs an authenticator or recovery code after password
+  or community sign-in. Enabling it signs out the account's other sessions.
+
+Back up the data directory before upgrading. This release adds a database
+migration for encrypted authenticator secrets and sign-in challenges.
+
 ## 0.9.0
 
 - Open any photo in a post and use **Previous photo** and **Next photo** to

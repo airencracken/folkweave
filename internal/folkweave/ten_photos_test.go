@@ -157,7 +157,7 @@ func TestPhotoSchemaUpgradeAndRollback(t *testing.T) {
 		if err := s.db.QueryRow("SELECT data FROM photo_previews WHERE photo_id=? AND width=320", id).Scan(&cached); err != nil || !bytes.Equal(cached, preview) {
 			t.Fatalf("migration lost the cached preview: %v", err)
 		}
-		if err := s.db.QueryRow("SELECT version FROM schema_version").Scan(&version); err != nil || version != 2 {
+		if err := s.db.QueryRow("SELECT version FROM schema_version").Scan(&version); err != nil || version != schemaVersion {
 			t.Fatalf("wrong schema version: %d, %v", version, err)
 		}
 		if err := s.Close(); err != nil {

@@ -43,6 +43,9 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 		a.render(w, r, 422, Page{View: "login", Title: "Sign in", Username: username, Error: "That username and password did not match."})
 		return
 	}
+	if a.finishFirstFactor(w, r, u.ID, hash) {
+		return
+	}
 	a.signIn(w, r, u.ID)
 }
 func (a *App) join(w http.ResponseWriter, r *http.Request) {

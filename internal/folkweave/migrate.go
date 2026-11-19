@@ -5,9 +5,11 @@ import (
 	"database/sql"
 	_ "embed"
 	"errors"
+
+	"github.com/airencracken/comfylib/twofactor"
 )
 
-const schemaVersion = 2
+const schemaVersion = 3
 
 //go:embed schema_v2.sql
 var schemaV2 string
@@ -37,6 +39,24 @@ func initializeSchema(ctx context.Context, db *sql.DB) error {
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, schemaV2); err != nil {
+			return err
+		}
+	}
+	if version < 3 {
+		if err := twofactor.Install(ctx, tx); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `CREATE TRIGGER IF NOT EXISTS twofactor_invalidated_login AFTER UPDATE OF password_hash,disabled ON users
+WHEN OLD.password_hash IS NOT NEW.password_hash OR OLD.disabled IS NOT NEW.disabled
+BEGIN
+ DELETE FROM twofactor_challenges WHERE user_id=NEW.id;
+ DELETE FROM twofactor_secrets WHERE user_id=NEW.id AND last_step IS NULL;
+END;`); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `DROP TABLE schema_version;
+CREATE TABLE schema_version(version INTEGER NOT NULL CHECK(version=3));
+INSERT INTO schema_version VALUES(3);`); err != nil {
 			return err
 		}
 	}

@@ -1,6 +1,6 @@
 services:
   folkweave:
-    image: ghcr.io/airencracken/folkweave:v0.9.0
+    image: ghcr.io/airencracken/folkweave:v0.10.0
     ports:
       - "127.0.0.1:8084:8080"
     environment:
@@ -9,6 +9,7 @@ services:
       FOLKWEAVE_SHARED_CLIENT_ID: "${FOLKWEAVE_SHARED_CLIENT_ID:-}"
       FOLKWEAVE_SHARED_CLIENT_SECRET: "${FOLKWEAVE_SHARED_CLIENT_SECRET:-}"
       FOLKWEAVE_BASE_URL: "${FOLKWEAVE_BASE_URL:-https://folkweave.example.org}"
+      FOLKWEAVE_TOTP_KEY: "${FOLKWEAVE_TOTP_KEY:-}"
     volumes:
       - folkweave-data:/data
     read_only: true

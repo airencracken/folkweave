@@ -8,7 +8,7 @@ Folkweave is a small, self-hosted Comfyware app for friends, family, or any
 group who choose each other. Each installation has its own accounts and
 invite-only membership. Members can see everything the group has posted.
 
-Current release: **[0.9.0](https://github.com/airencracken/folkweave/releases/tag/v0.9.0)**. [What's new](docs/release-notes.md)
+Current release: **[0.10.0](https://github.com/airencracken/folkweave/releases/tag/v0.10.0)**. [What's new](docs/release-notes.md)
 
 <br clear="right">
 
