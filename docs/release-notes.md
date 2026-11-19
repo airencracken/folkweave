@@ -4,6 +4,20 @@ Back up the stopped data directory before every upgrade, and keep that copy
 until you are sure you will not go back. An older Folkweave cannot open a
 database that a newer one has upgraded.
 
+## 0.9.0
+
+- Open any photo in a post and use **Previous photo** and **Next photo** to
+  browse them in order. **Back to post** returns you to the conversation.
+- Search for text in posts, replies, and photo descriptions. Results link to
+  the matching post, reply, or photo.
+- Run `folkweave demo --read-only` to browse a fictional group and try search
+  without signing in. The demo uses a separate temporary database and can be
+  hosted on its own domain.
+
+### For operators
+
+- Upgrading from 0.8.0 requires no database migration.
+
 ## 0.8.0
 
 - Repost another member's post or reply to the timeline with a link to the original.

@@ -114,7 +114,7 @@ func (a *App) logout(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) timeline(w http.ResponseWriter, r *http.Request) {
 	saved := r.URL.Path == "/saved"
-	feed, err := a.store.Posts(r.Context(), state(r).User.ID, r.URL.Query().Get("before"), saved, 0)
+	feed, err := a.store.Posts(r.Context(), state(r).viewerID(), r.URL.Query().Get("before"), saved, 0)
 	if err != nil {
 		a.fail(w, r, err)
 		return
@@ -239,7 +239,7 @@ func (a *App) post(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, r, err)
 		return
 	}
-	post, err := a.store.Post(r.Context(), state(r).User.ID, id)
+	post, err := a.store.Post(r.Context(), state(r).viewerID(), id)
 	if err != nil {
 		a.fail(w, r, err)
 		return
@@ -418,7 +418,7 @@ func (a *App) deleteReply(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) people(w http.ResponseWriter, r *http.Request) {
-	people, err := a.store.People(r.Context(), state(r).User.Owner())
+	people, err := a.store.People(r.Context(), state(r).User != nil && state(r).User.Owner())
 	if err != nil {
 		a.fail(w, r, err)
 		return
@@ -436,7 +436,7 @@ func (a *App) person(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, r, err)
 		return
 	}
-	feed, err := a.store.Posts(r.Context(), state(r).User.ID, r.URL.Query().Get("before"), false, id)
+	feed, err := a.store.Posts(r.Context(), state(r).viewerID(), r.URL.Query().Get("before"), false, id)
 	if err != nil {
 		a.fail(w, r, err)
 		return

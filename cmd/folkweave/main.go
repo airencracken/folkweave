@@ -8,13 +8,11 @@ import (
 	"io"
 	"log/slog"
 	"net"
-	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/airencracken/comfylib/autobackup"
 	"github.com/airencracken/comfylib/password"
@@ -24,7 +22,7 @@ import (
 	"github.com/gofrs/flock"
 )
 
-var version = "0.8.0"
+var version = "0.9.0"
 
 var instanceCommands = map[string]bool{"setup": true, "init": true, "create-owner": true, "set-password": true, "backup": true, "restore": true}
 var serviceSettings = []string{"FOLKWEAVE_LISTEN", "FOLKWEAVE_BASE_URL", "FOLKWEAVE_TRUSTED_PROXIES", "FOLKWEAVE_BACKUP_INTERVAL", "FOLKWEAVE_BACKUP_KEEP", "FOLKWEAVE_BACKUP_MAX_BYTES", "FOLKWEAVE_BACKUP_COPY_MAX_BYTES"}
@@ -172,6 +170,10 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 		listen := f.String("listen", setting("FOLKWEAVE_LISTEN", "127.0.0.1:8084"), "HTTP listen address")
 		base := f.String("base-url", setting("FOLKWEAVE_BASE_URL", ""), "public HTTP or HTTPS origin")
 		trusted := f.String("trusted-proxies", setting("FOLKWEAVE_TRUSTED_PROXIES", ""), "comma-separated trusted proxy CIDRs")
+		var readOnly bool
+		if command == "demo" {
+			f.BoolVar(&readOnly, "read-only", false, "show the sample group without accounts or writes")
+		}
 		if err := f.Parse(args[1:]); err != nil {
 			return helpError(err)
 		}
@@ -182,6 +184,10 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 			host, _, err := net.SplitHostPort(*listen)
 			if err != nil || net.ParseIP(host) == nil || !net.ParseIP(host).IsLoopback() {
 				return errors.New("demo must listen on a loopback IP address")
+			}
+			if readOnly {
+				config := folkweave.Config{Version: version, BaseURL: *base, TrustedProxies: *trusted}
+				return serveReadOnlyDemo(ctx, out, *listen, config)
 			}
 			temporary, err := os.MkdirTemp("", "folkweave-demo-")
 			if err != nil {
@@ -242,34 +248,11 @@ func run(ctx context.Context, args []string, in io.Reader, out io.Writer) error 
 			}
 		}()
 		defer func() { cancel(); <-done }()
-		server := &http.Server{Handler: wizard.Wrap(app), ReadHeaderTimeout: 10 * time.Second, ReadTimeout: 5 * time.Minute, WriteTimeout: 5 * time.Minute, IdleTimeout: 90 * time.Second, MaxHeaderBytes: 32 << 10}
-		finished := make(chan error, 1)
-		go func() { finished <- server.Serve(listener) }()
-		fmt.Fprintln(out, "Folkweave is listening at", *base)
+		var message string
 		if command == "demo" {
-			fmt.Fprintln(out, "Disposable demo with fictional people and photographs.\nUsername: demo\nPassword: folkweave-demo-only")
+			message = "Disposable demo with fictional people and photographs.\nUsername: demo\nPassword: folkweave-demo-only"
 		}
-		select {
-		case err = <-finished:
-			if flushErr := app.Flush(context.Background()); flushErr != nil {
-				slog.Warn("save request counts", "error", flushErr)
-			}
-			if errors.Is(err, http.ErrServerClosed) {
-				return nil
-			}
-			return err
-		case <-ctx.Done():
-			shutdown, stop := context.WithTimeout(context.Background(), 10*time.Second)
-			defer stop()
-			err = server.Shutdown(shutdown)
-			if err != nil {
-				server.Close()
-			}
-			if flushErr := app.Flush(shutdown); flushErr != nil {
-				slog.Warn("save request counts", "error", flushErr)
-			}
-			return err
-		}
+		return serveHTTP(ctx, out, listener, *base, wizard.Wrap(app), message, app.Flush)
 	case "backup":
 		destination := f.String("output", "", "new snapshot directory")
 		limit := f.Int64("max-bytes", 5<<30, "snapshot byte limit")

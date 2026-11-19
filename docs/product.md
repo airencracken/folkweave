@@ -20,6 +20,10 @@ The repost credits the author and links to the original. Edits are reflected
 in the repost. If the source is removed, the repost says so and keeps its
 own discussion.
 
+Open a photo to see its description and browse the other photos in the post.
+Search looks for literal text in posts, replies, and photo descriptions. Each
+result opens its source, and subsequent searches reflect edits and removals.
+
 Saved posts are personal. Profiles show who is speaking. Owners can close
 invitations, suspend members, and remove posts and replies. Authors can edit
 their posts and delete them from the **More** menu. Authors can also remove

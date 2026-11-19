@@ -8,7 +8,7 @@ Folkweave is a small, self-hosted Comfyware app for friends, family, or any
 group who choose each other. Each installation has its own accounts and
 invite-only membership. Members can see everything the group has posted.
 
-Current release: **[0.8.0](https://github.com/airencracken/folkweave/releases/tag/v0.8.0)**. [What's new](docs/release-notes.md)
+Current release: **[0.9.0](https://github.com/airencracken/folkweave/releases/tag/v0.9.0)**. [What's new](docs/release-notes.md)
 
 <br clear="right">
 
@@ -27,6 +27,10 @@ make build
 Open <http://127.0.0.1:8084> and sign in as `demo` with the password
 `folkweave-demo-only`. The demo has fictional people and photos. It listens
 only on loopback and deletes its data when it stops.
+
+Run `./dist/folkweave demo --read-only` to browse the same sample without
+signing in. To share the sample with others, see the
+[hosting instructions](docs/deployment.md#host-the-read-only-demo).
 
 ## Install
 
@@ -60,6 +64,8 @@ before you invite anyone.
 
 - Join with an invitation link and see the group's earlier posts.
 - Post short or long text, links, and up to ten photos with descriptions.
+- Open a photo and browse the rest of that post's photos in order.
+- Search posts, replies, and photo descriptions from **Search**.
 - Reply, save posts for later, and edit or remove their own words.
 - Repost another member’s post or reply to the timeline, with credit and a link
   to the original.

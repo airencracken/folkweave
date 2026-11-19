@@ -41,6 +41,7 @@ type Config struct {
 	TrustedProxies string
 }
 type App struct {
+	readOnly         bool
 	store            *Store
 	config           Config
 	base             *url.URL
@@ -58,6 +59,14 @@ type requestState struct {
 	User *User
 	CSRF string
 }
+
+func (s requestState) viewerID() int64 {
+	if s.User == nil {
+		return 0
+	}
+	return s.User.ID
+}
+
 type contextKey struct{}
 
 func state(r *http.Request) requestState {
@@ -76,9 +85,12 @@ type Page struct {
 	CSRF                                                                      string
 	Feed                                                                      PostPage
 	Post                                                                      Post
+	Photo                                                                     photoView
+	Search                                                                    searchPage
 	People                                                                    []User
 	Invitations                                                               []Invitation
 	Saved                                                                     bool
+	ReadOnly                                                                  bool
 	OOB                                                                       bool
 	Author                                                                    int64
 	InviteURL                                                                 string
@@ -94,6 +106,10 @@ func (Page) Palettes() []ui.Palette { return ui.Palettes() }
 const defaultPalette = ui.Sage
 
 func NewApp(store *Store, c Config) (*App, error) {
+	return newApp(store, c, false)
+}
+
+func newApp(store *Store, c Config, readOnly bool) (*App, error) {
 	suiteFuncs, suiteErr := suite.TemplateFuncs("FOLKWEAVE_")
 	if suiteErr != nil {
 		return nil, suiteErr
@@ -112,6 +128,8 @@ func NewApp(store *Store, c Config) (*App, error) {
 		return nil, err
 	}
 	functions := template.FuncMap{"themePicker": ui.ThemePicker, "photoLimit": func() string { return ui.Size(MaxPhotoBytes) }, "photoBytes": func() int64 { return MaxPhotoBytes }, "photoCount": func() int { return MaxPhotos }, "photoNumber": func(index int) int { return index + 1 }, "timezonePreference": displaytime.RenderPreference, "adminSummary": admin.Render, "linkify": linkify, "canEdit": func(u *User, p Post) bool { return u != nil && u.ID == p.Author.ID && p.Repost == nil }, "canDelete": func(u *User, id int64) bool { return u != nil && (u.Owner() || u.ID == id) }}
+	functions["photoGallery"] = func(id int64, photos []Photo) photoGallery { return photoGallery{PostID: id, Photos: photos} }
+	functions["photoViewURL"] = photoViewURL
 	functions["postContext"] = func(root Page, post Post) Page { root.Post = post; return root }
 	t, err := template.New("pages").Funcs(suiteFuncs).Funcs(functions).Funcs(displaytime.New("UTC").Funcs()).ParseFS(assets, "templates/*.html")
 	if err != nil {
@@ -121,7 +139,7 @@ func NewApp(store *Store, c Config) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &App{store: store, config: c, base: u, templates: bound, dummyHash: dummy, resolver: clientip.Resolver{Trusted: trusted}, uploads: make(chan struct{}, 2), exports: make(chan struct{}, 1), monitor: analytics.NewMonitor(store.db)}
+	a := &App{readOnly: readOnly, store: store, config: c, base: u, templates: bound, dummyHash: dummy, resolver: clientip.Resolver{Trusted: trusted}, uploads: make(chan struct{}, 2), exports: make(chan struct{}, 1), monitor: analytics.NewMonitor(store.db)}
 	a.problems = problem.Writer{Layout: func(w http.ResponseWriter, r *http.Request, page problem.Page) error {
 		return a.renderTo(w, r, page.Status, Page{View: "error-page", Title: page.Title, Error: page.Message})
 	}}
@@ -133,6 +151,17 @@ func NewApp(store *Store, c Config) (*App, error) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		fmt.Fprintln(w, "ok")
 	})
+	if readOnly {
+		mux.HandleFunc("GET /{$}", a.timeline)
+		mux.HandleFunc("GET /search", a.search)
+		mux.HandleFunc("GET /posts/{id}", a.post)
+		mux.HandleFunc("GET /posts/{id}/photos/{photo}", a.viewPhoto)
+		mux.HandleFunc("GET /photos/{id}", a.photo)
+		mux.HandleFunc("GET /people", a.people)
+		mux.HandleFunc("GET /people/{id}", a.person)
+		a.handler = a.middleware(mux)
+		return a, nil
+	}
 	mux.HandleFunc("GET /login", a.loginForm)
 	mux.HandleFunc("POST /login", a.login)
 	mux.HandleFunc("GET /join", a.joinForm)
@@ -140,6 +169,7 @@ func NewApp(store *Store, c Config) (*App, error) {
 	mux.HandleFunc("POST /logout", a.private(a.logout))
 	mux.HandleFunc("GET /{$}", a.private(a.timeline))
 	mux.HandleFunc("GET /saved", a.private(a.timeline))
+	mux.HandleFunc("GET /search", a.private(a.search))
 	mux.HandleFunc("GET /updates", a.private(a.updates))
 	mux.HandleFunc("POST /posts", a.private(a.createPost))
 	mux.HandleFunc("GET /posts/{id}", a.private(a.post))
@@ -151,6 +181,7 @@ func NewApp(store *Store, c Config) (*App, error) {
 	mux.HandleFunc("POST /posts/{id}/repost", a.private(a.repost(false)))
 	mux.HandleFunc("POST /replies/{id}/repost", a.private(a.repost(true)))
 	mux.HandleFunc("POST /replies/{id}/delete", a.private(a.deleteReply))
+	mux.HandleFunc("GET /posts/{id}/photos/{photo}", a.private(a.viewPhoto))
 	mux.HandleFunc("GET /photos/{id}", a.private(a.photo))
 	mux.HandleFunc("GET /people", a.private(a.people))
 	mux.HandleFunc("GET /people/{id}", a.private(a.person))
@@ -210,6 +241,10 @@ func (a *App) middleware(next http.Handler) http.Handler {
 		}
 		if !strings.EqualFold(r.Host, a.base.Host) {
 			http.Error(w, "Unknown host", 400)
+			return
+		}
+		if a.readOnly {
+			next.ServeHTTP(w, r)
 			return
 		}
 		st := requestState{}
@@ -319,6 +354,7 @@ func (a *App) page(r *http.Request, p Page) Page {
 		p.Overview = admin.WithOperations(p.Overview, a.config.Version, a.Backups.Status(), "FOLKWEAVE_")
 	}
 	p.User = state(r).User
+	p.ReadOnly = a.readOnly
 	p.Overview.Timezone = preferredTimezone(r)
 	p.TimezoneControl = timezoneControl(r, p.TimezoneInput, p.TimezoneError, p.TimezoneNotice)
 	p.CSRF = state(r).CSRF
@@ -327,7 +363,7 @@ func (a *App) page(r *http.Request, p Page) Page {
 	}
 	p.SitePalette = ui.SiteDefault(p.Settings.Palette, defaultPalette)
 	p.PaletteAttrs = ui.PaletteAttrs(p.SitePalette)
-	if p.Submission == "" {
+	if !a.readOnly && p.Submission == "" {
 		p.Submission, _ = token.New()
 	}
 	return p

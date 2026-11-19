@@ -34,6 +34,25 @@ Proxy examples for Caddy, nginx, and Apache are in `deploy/`. Terminate TLS at
 the proxy and keep Folkweave's listener private. If your proxy caps request
 bodies, allow at least 51 MiB for ten-photo posts, including form overhead.
 
+## Host the read-only demo
+
+Run the sample on its own HTTPS origin and proxy it to a loopback listener.
+Visitors can browse fictional posts, replies and photos, and try search
+without an account. The sample creates a fresh temporary database at startup
+and removes it at shutdown. It has no sign-in or posting controls.
+
+```sh
+folkweave demo --read-only --listen 127.0.0.1:8086 --base-url https://demo.example.org
+```
+
+This Caddy block forwards requests to the demo.
+
+```caddyfile
+demo.example.org {
+    reverse_proxy 127.0.0.1:8086
+}
+```
+
 ## Account commands
 
 Run account, backup, and restore commands as the account that owns the data.

@@ -1,5 +1,29 @@
 [
   {
+    "name": "photo viewers require an authenticated member",
+    "file": "internal/folkweave/web.go",
+    "before": "mux.HandleFunc(\"GET /posts/{id}/photos/{photo}\", a.private(a.viewPhoto))",
+    "after": "mux.HandleFunc(\"GET /posts/{id}/photos/{photo}\", a.viewPhoto)",
+    "package": "./internal/folkweave",
+    "run": "^TestPhotoViewerOrderAndPrivacy$"
+  },
+  {
+    "name": "search includes matching replies",
+    "file": "internal/folkweave/search.go",
+    "before": "WHERE instr(folkweave_lower(r.body),?)",
+    "after": "WHERE instr(folkweave_lower(r.body),?) AND 0",
+    "package": "./internal/folkweave",
+    "run": "^TestSearchRoutesAndLiveContent$"
+  },
+  {
+    "name": "the public sample opens SQLite in read-only mode",
+    "file": "internal/folkweave/read_only_demo.go",
+    "before": "RawQuery: \"mode=ro\"",
+    "after": "RawQuery: \"mode=rw\"",
+    "package": "./internal/folkweave",
+    "run": "^TestReadOnlyDemoRouteAndStorageIsolation$"
+  },
+  {
     "name": "revoked invitations cannot be redeemed",
     "file": "internal/folkweave/store.go",
     "before": "AND revoked=0 AND expires_at>?",

@@ -1,0 +1,25 @@
+{{define "search-page"}}
+<div class="page-heading"><h1>Search</h1></div>
+<form class="panel search-form" role="search" method="get" action="/search">
+  <label for="search-query">Search posts, replies, and photo descriptions</label>
+  <div class="search-input">
+    <input id="search-query" type="search" name="q" maxlength="120" value="{{.Search.Query}}" required>
+    <button type="submit">Search</button>
+  </div>
+  {{template "error" .}}
+</form>
+{{if .Search.Query}}
+  {{if .Search.Hits}}
+  <section class="search-results" aria-labelledby="search-results-heading">
+    <h2 id="search-results-heading">Results</h2>
+    {{range .Search.Hits}}
+      <article class="panel">
+        <a href="{{.URL}}">{{.Kind}} by {{.Author}}</a>
+        <p class="body-text">{{.Text}}</p>
+      </article>
+    {{end}}
+  </section>
+  {{with .Search.Next}}<a class="button secondary" href="{{.}}">More results</a>{{end}}
+  {{else}}<p>No results found.</p>{{end}}
+{{end}}
+{{end}}

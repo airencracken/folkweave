@@ -125,6 +125,38 @@ for (const javascript of [true, false]) for (const width of [320, 390, 768, 1280
 }
 
 for (const javascript of [true, false]) {
+  test(`browse post photos and search with JavaScript ${javascript ? 'on' : 'off'}`, async () => {
+    const context = await browser.newContext({ storageState: signedInState, javaScriptEnabled: javascript, viewport: { width: 320, height: 960 } });
+    try {
+      const page = await context.newPage();
+      await page.goto(origin + '/');
+      const gallery = page.locator('#feed .post').filter({ hasText: 'Took the long way home' }).locator('.photos a');
+      await gallery.first().click();
+      await page.getByText('Photo 1 of 2', { exact: true }).waitFor();
+      const firstPhoto = page.url();
+      assert.match(await page.locator('figcaption').innerText(), /woodland path/);
+      assert.equal(await page.getByRole('link', { name: 'Previous photo' }).count(), 0);
+      await page.getByRole('link', { name: 'Next photo' }).click();
+      await page.getByText('Photo 2 of 2', { exact: true }).waitFor();
+      assert.equal(await page.getByRole('link', { name: 'Next photo' }).count(), 0);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      await page.getByRole('link', { name: 'Previous photo' }).click();
+      assert.equal(page.url(), firstPhoto);
+      await page.getByRole('link', { name: 'Back to post' }).click();
+      assert.equal(page.url(), firstPhoto.split('/photos/')[0]);
+
+      await page.getByRole('link', { name: 'Search', exact: true }).click();
+      await page.getByRole('searchbox').fill('flask');
+      await page.getByRole('button', { name: 'Search', exact: true }).click();
+      await page.getByRole('link', { name: 'Reply by Jules', exact: true }).click();
+      const id = new URL(page.url()).hash;
+      assert.match(id, /^#reply-\d+$/);
+      assert.match(await page.locator(id).innerText(), /I can bring the flask/);
+    } finally {
+      await context.close();
+    }
+  });
+
   test(`reposts, ten photos, and post deletion with JavaScript ${javascript ? 'on' : 'off'}`, async () => {
     const context = await browser.newContext({ storageState: signedInState, javaScriptEnabled: javascript, viewport: { width: 320, height: 960 } });
     try {
@@ -179,6 +211,40 @@ for (const javascript of [true, false]) {
     }
   });
 }
+
+test('read-only demo needs no account and links search results to photos', async () => {
+  const port = await reservePort();
+  const sample = 'http://127.0.0.1:' + port;
+  const sampleServer = await spawnServer(process.env.FOLKWEAVE_BINARY || root + 'dist/folkweave',
+    ['demo', '--read-only', '--listen', '127.0.0.1:' + port], {
+      env: { ...process.env, FOLKWEAVE_DATA_DIR: root + 'VERSION' },
+      health: sample + '/healthz',
+    });
+  try {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    try {
+      const page = await context.newPage();
+      await page.goto(sample + '/');
+      await page.getByText('Read-only demo with fictional posts and photos.').waitFor();
+      assert.equal(await page.locator('form[method="post"]').count(), 0);
+      await page.getByRole('link', { name: 'Search', exact: true }).click();
+      await page.getByRole('searchbox').fill('woodland path');
+      await page.getByRole('button', { name: 'Search', exact: true }).click();
+      await page.getByRole('link', { name: 'Photo description by Ari', exact: true }).click();
+      assert.match(await page.locator('figcaption').innerText(), /woodland path/);
+      await page.waitForFunction(() => document.querySelector('.photo-viewer img').naturalWidth > 0);
+      await page.getByRole('link', { name: 'Back to post' }).click();
+      assert.equal(await page.locator('form[method="post"]').count(), 0);
+      assert.equal((await context.request.get(sample + '/login')).status(), 404);
+      assert.equal((await context.request.post(sample + '/posts')).status(), 404);
+      assert.deepEqual(await context.cookies(), []);
+    } finally {
+      await context.close();
+    }
+  } finally {
+    await stopProcess(sampleServer);
+  }
+});
 
 test('theme picker applies before paint, persists, and survives blocked storage', async () => {
   const context = await browser.newContext({ colorScheme: 'light' });

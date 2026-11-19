@@ -1,0 +1,15 @@
+{{define "photo-viewer"}}
+<nav class="photo-navigation" aria-label="Post photos">
+  <a href="{{.PostURL}}">Back to post</a>
+  <span class="muted">Photo {{.Number}} of {{.Total}}</span>
+</nav>
+<figure class="photo-viewer panel">
+  <img src="{{.Photo.URL}}?width=960" srcset="{{.Photo.Srcset}}" sizes="(max-width: 800px) 90vw, 720px" alt="{{.Photo.Alt}}" width="{{.Photo.Width}}" height="{{.Photo.Height}}">
+  {{with .Photo.Alt}}<figcaption>{{.}}</figcaption>{{end}}
+</figure>
+<nav class="photo-navigation" aria-label="Browse photos">
+  {{with .Previous}}<a rel="prev" href="{{.}}">Previous photo</a>{{end}}
+  {{with .Next}}<a rel="next" href="{{.}}">Next photo</a>{{end}}
+  <a class="photo-original" href="{{.Photo.URL}}">Open full-size photo</a>
+</nav>
+{{end}}

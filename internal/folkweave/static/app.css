@@ -189,3 +189,16 @@ details p { margin-top: 10px; }
   .composer-footer { gap: 8px; }
   .audience { max-width: 140px; }
 }
+
+.photo-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin-block: 0 1rem; }
+.photo-navigation a { display: flex; align-items: center; min-height: 44px; }
+.photo-navigation span, .photo-original { margin-inline-start: auto; }
+.photo-viewer { margin-inline: 0; text-align: center; }
+.photo-viewer img { display: block; max-width: 100%; height: auto; margin-inline: auto; }
+.photo-viewer figcaption { margin-top: .75rem; overflow-wrap: anywhere; }
+.search-form label { margin-top: 0; }
+.search-input { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px; }
+.search-results .panel { padding-block: 1rem; }
+.search-results .body-text { margin: .4rem 0 0; }
+.sample-note { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .4rem 1rem; margin-bottom: 1.5rem; padding: .8rem 1rem; background: var(--soft); border-radius: var(--comfy-radius-small); }
+.sample-note p { margin: 0; }
