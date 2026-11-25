@@ -88,6 +88,9 @@ type Page struct {
 	User                                                                      *User
 	CSRF                                                                      string
 	Feed                                                                      PostPage
+	CatchUp                                                                   catchUpPage
+	Inbox                                                                     replyInboxPage
+	FollowingDiscussion                                                       bool
 	Post                                                                      Post
 	Photo                                                                     photoView
 	Search                                                                    searchPage
@@ -173,6 +176,10 @@ func newApp(store *Store, c Config, readOnly bool) (*App, error) {
 	mux.HandleFunc("POST /logout", a.private(a.logout))
 	mux.HandleFunc("GET /{$}", a.private(a.timeline))
 	mux.HandleFunc("GET /saved", a.private(a.timeline))
+	mux.HandleFunc("GET /catch-up", a.private(a.catchUp))
+	mux.HandleFunc("POST /catch-up", a.private(a.markReadingProgress))
+	mux.HandleFunc("GET /replies", a.private(a.replyInbox))
+	mux.HandleFunc("POST /replies/seen", a.private(a.markReadingProgress))
 	mux.HandleFunc("GET /search", a.private(a.search))
 	mux.HandleFunc("GET /updates", a.private(a.updates))
 	mux.HandleFunc("POST /posts", a.private(a.createPost))
@@ -182,6 +189,7 @@ func newApp(store *Store, c Config, readOnly bool) (*App, error) {
 	mux.HandleFunc("POST /posts/{id}/delete", a.private(a.deletePost))
 	mux.HandleFunc("POST /posts/{id}/save", a.private(a.savePost))
 	mux.HandleFunc("POST /posts/{id}/replies", a.private(a.reply))
+	mux.HandleFunc("POST /posts/{id}/follow", a.private(a.followDiscussion))
 	mux.HandleFunc("POST /posts/{id}/repost", a.private(a.repost(false)))
 	mux.HandleFunc("POST /replies/{id}/repost", a.private(a.repost(true)))
 	mux.HandleFunc("POST /replies/{id}/delete", a.private(a.deleteReply))

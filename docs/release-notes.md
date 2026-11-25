@@ -4,6 +4,20 @@ Back up the stopped data directory before every upgrade, and keep that copy
 until you are sure you will not go back. An older Folkweave cannot open a
 database that a newer one has upgraded.
 
+## 0.11.0
+
+- **Catch up** shows a finite batch of posts from your private bookmark,
+  oldest first. Use **Mark caught up** to move your bookmark. When you mark
+  a page, the next page keeps the same endpoint.
+- **Replies** collects responses to your posts and new replies in
+  conversations you follow. Open any reply in its original thread and use
+  **Mark replies seen** when you’re done.
+- Follow or unfollow a conversation on its post. Catch up, following,
+  and the reply inbox work with JavaScript off.
+
+Startup migrates to schema 4. It adds private bookmarks, inbox state,
+and follows. Keep a backup from before the upgrade in case you roll back.
+
 ## 0.10.0
 
 - Optional authenticator-app sign-in is available on the account page after

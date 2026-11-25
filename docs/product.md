@@ -29,6 +29,13 @@ invitations, suspend members, and remove posts and replies. Authors can edit
 their posts and delete them from the **More** menu. Authors can also remove
 their own replies. Suspending a member ends their sessions.
 
+Catch up shows posts after a member’s bookmark, oldest first. A visit has a
+fixed endpoint, and members can save their place after each page. Opening a
+post leaves the bookmark alone. The Replies inbox includes responses to members’
+own posts and replies added after they follow a conversation. Members can mark
+the inbox seen and unfollow conversations from the post. Bookmarks, inbox
+state, and follows belong to each member.
+
 Photos are stored in the SQLite database. Folkweave runs on its own, without
 Imvault, Witmoot, or Songstead.
 
@@ -61,6 +68,6 @@ The timeline has an end. Folkweave is not federated and has no followers,
 ranking, or engagement targets. Members choose when to visit. Members
 can export their own contributions, and the server makes verified backups.
 
-Possible next steps: a saved reading position, more account self-service,
-reporting posts, reviewed audiences, and links to the other Comfyware apps.
+Possible next steps include more account self-service, reporting posts,
+reviewed audiences, and links to the other Comfyware apps.
 Each needs its own decisions about permissions and lifecycle.

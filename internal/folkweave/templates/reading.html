@@ -1,0 +1,61 @@
+{{define "catch-up-page"}}
+<div class="page-heading"><div>
+  <h1>Catch up</h1>
+  <p>Read from your bookmark, oldest first. Mark your place when you’re ready.</p>
+</div></div>
+<section aria-label="Posts since your bookmark">
+  {{range .CatchUp.Posts}}{{template "article" (postContext $ .)}}{{else}}
+  <div class="panel empty"><h2>You’re caught up.</h2><p>New posts will be here next time.</p></div>
+  {{end}}
+  {{if .CatchUp.MarkThrough}}
+  <div class="pagination reading-actions">
+    <form method="post" action="/catch-up">{{template "csrf" .}}
+      <input type="hidden" name="through" value="{{.CatchUp.MarkThrough}}">
+      {{if .CatchUp.Snapshot}}<input type="hidden" name="snapshot" value="{{.CatchUp.Snapshot}}">{{end}}
+      <button type="submit">{{if .CatchUp.Next}}Mark caught up through this page{{else}}Mark caught up{{end}}</button>
+    </form>
+    {{if .CatchUp.Next}}<a class="button secondary" href="{{.CatchUp.Next}}">Continue catching up</a>{{end}}
+  </div>
+  {{end}}
+</section>
+{{end}}
+
+{{define "reply-inbox-page"}}
+<div class="page-heading"><div>
+  <h1>Replies</h1>
+  <p>Replies to your posts and conversations you follow.</p>
+</div>
+{{if .Inbox.MarkThrough}}
+<form method="post" action="/replies/seen">{{template "csrf" .}}
+  <input type="hidden" name="through" value="{{.Inbox.MarkThrough}}">
+  <button class="secondary" type="submit">Mark replies seen</button>
+</form>
+{{end}}
+</div>
+<section class="inbox-list" aria-label="Your reply inbox">
+  {{range .Inbox.Replies}}
+  <article class="panel inbox-reply">
+    <div class="reply-heading">
+      <div><a class="author" href="/people/{{.AuthorID}}">{{.Author}}</a> replied to {{.PostAuthor}}’s post
+        {{if .New}}<strong class="inbox-new">New</strong>{{end}}
+      </div>
+      <time datetime="{{datetime .Created}}">{{date .Created}}</time>
+    </div>
+    <p class="body-text">{{.Excerpt}}</p>
+    <a href="{{.URL}}">Read reply</a>
+  </article>
+  {{else}}
+  <div class="panel empty"><h2>No replies here yet.</h2><p>Follow a conversation from its post to get new replies here.</p></div>
+  {{end}}
+  {{if .Inbox.Next}}<nav class="pagination" aria-label="Reply pages"><a class="button secondary" href="{{.Inbox.Next}}">Older replies</a></nav>{{end}}
+</section>
+{{end}}
+
+{{define "discussion-follow"}}
+{{if and .User (ne .User.ID .Post.Author.ID)}}
+<form class="discussion-follow" method="post" action="{{.Post.URL}}/follow">{{template "csrf" .}}
+  <input type="hidden" name="follow" value="{{if .FollowingDiscussion}}0{{else}}1{{end}}">
+  <button class="secondary" type="submit">{{if .FollowingDiscussion}}Unfollow conversation{{else}}Follow conversation{{end}}</button>
+</form>
+{{end}}
+{{end}}

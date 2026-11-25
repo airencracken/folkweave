@@ -316,7 +316,8 @@ test('invitation joins the private group without exposing owner controls', async
 });
 
 test('rapid reply submits issue one request and display one saved reply', async () => {
-  const context = await browser.newContext(); const page = await context.newPage(); await signIn(page);
+  const context = await browser.newContext({ storageState: signedInState }); const page = await context.newPage();
+  await page.goto(origin + '/');
   await act(page.locator('#feed .post').first().locator('.post-footer > a'), 'click');
   await act(page.locator('#reply-body'), 'fill', 'Only once, even when the connection is slow.');
   let requests = 0;
@@ -326,3 +327,69 @@ test('rapid reply submits issue one request and display one saved reply', async 
   assert.equal(requests, 1); assert.equal(await page.locator('.reply .body-text').filter({ hasText: 'Only once, even when the connection is slow.' }).count(), 1);
   await context.close();
 });
+
+for (const javascript of [true, false]) {
+  test(`catch up and follow replies with JavaScript ${javascript ? 'on' : 'off'}`, async () => {
+    const ownerContext = await browser.newContext({ storageState: signedInState });
+    const memberContext = await browser.newContext({ javaScriptEnabled: javascript, viewport: { width: 320, height: 960 } });
+    try {
+      const owner = await ownerContext.newPage();
+      const member = await memberContext.newPage();
+      const identifier = javascript ? 'cirrus' : 'cumulus';
+      await owner.goto(origin + '/invitations');
+      await act(owner.getByRole('button', { name: 'Create invitation', exact: true }), 'click');
+      await member.goto(await owner.getByLabel('Invitation link', { exact: true }).inputValue());
+      await act(member.getByLabel('Your name', { exact: true }), 'fill', identifier);
+      await act(member.getByLabel('Username', { exact: true }), 'fill', identifier);
+      await act(member.getByLabel('Choose a password', { exact: true }), 'fill', 'a-private-long-password');
+      const joining = member.waitForResponse(response => response.request().method() === 'POST' && response.url() === origin + '/join');
+      await act(member.getByRole('button', { name: 'Create account', exact: true }), 'click');
+      assert.equal((await joining).status(), 303);
+      await member.waitForURL(origin + '/');
+
+      await owner.goto(origin + '/');
+      const body = 'A post to catch up on ' + identifier;
+      await act(owner.locator('#post-body'), 'fill', body);
+      await act(owner.getByRole('button', { name: 'Share', exact: true }), 'click');
+      const card = owner.locator('#feed .post').filter({ hasText: body });
+      await card.waitFor();
+      const discussion = new URL(await card.locator('.post-date').getAttribute('href'), origin).href;
+      const nav = member.getByRole('navigation', { name: 'Main', exact: true });
+      await act(nav.getByRole('link', { name: 'Catch up', exact: true }), 'click');
+      const markPage = member.getByRole('button', { name: 'Mark caught up through this page', exact: true });
+      for (let n = 0; await markPage.count(); n++) {
+        assert.ok(n < 10, 'catch-up batch did not finish');
+        await act(markPage, 'click');
+      }
+      await member.getByText(body, { exact: true }).waitFor();
+      assert.equal(await member.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      await act(member.getByRole('button', { name: 'Mark caught up', exact: true }), 'click');
+      await member.getByRole('heading', { name: 'You’re caught up.', exact: true }).waitFor();
+
+      await member.goto(discussion);
+      await act(member.getByRole('button', { name: 'Follow conversation', exact: true }), 'click');
+      await member.getByRole('button', { name: 'Unfollow conversation', exact: true }).waitFor();
+      await owner.goto(discussion);
+      const reply = 'A fresh reply for ' + identifier;
+      await act(owner.locator('#reply-body'), 'fill', reply);
+      await act(owner.getByRole('button', { name: 'Post reply', exact: true }), 'click');
+      await owner.getByText(reply, { exact: true }).waitFor();
+
+      await act(nav.getByRole('link', { name: 'Replies', exact: true }), 'click');
+      await member.getByText(reply, { exact: true }).waitFor();
+      assert.equal(await member.locator('.inbox-new').count(), 1);
+      assert.equal(await member.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      await act(member.getByRole('button', { name: 'Mark replies seen', exact: true }), 'click');
+      assert.equal(await member.locator('.inbox-new').count(), 0);
+      await act(member.getByRole('link', { name: 'Read reply', exact: true }), 'click');
+      assert.match(member.url(), /#reply-\d+$/);
+      await member.getByText(reply, { exact: true }).waitFor();
+      await act(member.getByRole('button', { name: 'Unfollow conversation', exact: true }), 'click');
+      await act(nav.getByRole('link', { name: 'Replies', exact: true }), 'click');
+      await member.getByRole('heading', { name: 'No replies here yet.', exact: true }).waitFor();
+    } finally {
+      await ownerContext.close();
+      await memberContext.close();
+    }
+  });
+}

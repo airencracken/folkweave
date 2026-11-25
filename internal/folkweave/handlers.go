@@ -247,7 +247,7 @@ func (a *App) post(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, r, err)
 		return
 	}
-	a.render(w, r, 200, Page{View: "post", Title: "Replies", Post: post})
+	a.renderDiscussion(w, r, 200, Page{View: "post", Title: "Replies", Post: post})
 }
 func (a *App) reply(w http.ResponseWriter, r *http.Request) {
 	id, err := routeID(r)
@@ -267,7 +267,7 @@ func (a *App) reply(w http.ResponseWriter, r *http.Request) {
 					a.fail(w, r, e)
 					return
 				}
-				a.render(w, r, 422, Page{View: "post", Title: "Replies", Post: p, Body: body, Error: "Write a reply up to 5,000 characters.", Submission: r.PostForm.Get("submission")})
+				a.renderDiscussion(w, r, 422, Page{View: "post", Title: "Replies", Post: p, Body: body, Error: "Write a reply up to 5,000 characters.", Submission: r.PostForm.Get("submission")})
 			}
 		} else {
 			a.fail(w, r, err)

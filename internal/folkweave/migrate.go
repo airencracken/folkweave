@@ -9,10 +9,13 @@ import (
 	"github.com/airencracken/comfylib/twofactor"
 )
 
-const schemaVersion = 3
+const schemaVersion = 4
 
 //go:embed schema_v2.sql
 var schemaV2 string
+
+//go:embed schema_v4.sql
+var schemaV4 string
 
 func initializeSchema(ctx context.Context, db *sql.DB) error {
 	tx, err := db.BeginTx(ctx, nil)
@@ -57,6 +60,11 @@ END;`); err != nil {
 		if _, err := tx.ExecContext(ctx, `DROP TABLE schema_version;
 CREATE TABLE schema_version(version INTEGER NOT NULL CHECK(version=3));
 INSERT INTO schema_version VALUES(3);`); err != nil {
+			return err
+		}
+	}
+	if version < 4 {
+		if _, err := tx.ExecContext(ctx, schemaV4); err != nil {
 			return err
 		}
 	}

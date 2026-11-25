@@ -302,5 +302,69 @@
     "after": "if err = a.store.DeleteContent(r.Context(), state(r).User.ID, id, false); err != nil {",
     "package": "./internal/folkweave",
     "run": "^TestAuthorCanDeletePostFromTimeline$"
+  },
+  {
+    "name": "catch up resumes after the saved bookmark",
+    "file": "internal/folkweave/reading_progress.go",
+    "before": "max(bookmark, after)",
+    "after": "after",
+    "package": "./internal/folkweave",
+    "run": "^TestCatchUpUsesPrivateBookmarkAndFiniteSnapshot$"
+  },
+  {
+    "name": "catch-up pages keep the original snapshot",
+    "file": "internal/folkweave/reading_progress.go",
+    "before": "WHERE p.id>? AND p.id<=? ORDER BY",
+    "after": "WHERE p.id>? AND ?>0 ORDER BY",
+    "package": "./internal/folkweave",
+    "run": "^TestCatchUpUsesPrivateBookmarkAndFiniteSnapshot$"
+  },
+  {
+    "name": "catch-up submissions reject future snapshots",
+    "file": "internal/folkweave/reading_progress.go",
+    "before": "if max(through, snapshot) > latest {",
+    "after": "if false && max(through, snapshot) > latest {",
+    "package": "./internal/folkweave",
+    "run": "^TestCatchUpBookmarkSubmissionKeepsItsSnapshot$"
+  },
+  {
+    "name": "catch-up bookmarks never move backward",
+    "file": "internal/folkweave/reading_progress.go",
+    "before": "max(reader_progress.caught_up_post_id,excluded.caught_up_post_id)",
+    "after": "excluded.caught_up_post_id",
+    "package": "./internal/folkweave",
+    "run": "^TestCatchUpUsesPrivateBookmarkAndFiniteSnapshot$"
+  },
+  {
+    "name": "following a discussion only shows later replies",
+    "file": "internal/folkweave/reply_inbox.go",
+    "before": "AND r.id>f.after_reply_id",
+    "after": "AND r.id>0",
+    "package": "./internal/folkweave",
+    "run": "^TestReplyInboxOwnPostsFollowsAndSeenState$"
+  },
+  {
+    "name": "the replies inbox excludes your own replies",
+    "file": "internal/folkweave/reply_inbox.go",
+    "before": "WHERE r.user_id<>?",
+    "after": "WHERE (r.user_id<>? OR 1=1)",
+    "package": "./internal/folkweave",
+    "run": "^TestReplyInboxOwnPostsFollowsAndSeenState$"
+  },
+  {
+    "name": "the replies inbox is private",
+    "file": "internal/folkweave/web.go",
+    "before": "mux.HandleFunc(\"GET /replies\", a.private(a.replyInbox))",
+    "after": "mux.HandleFunc(\"GET /replies\", a.replyInbox)",
+    "package": "./internal/folkweave",
+    "run": "^TestReadingProgressRoutesAndAdversarialForms$"
+  },
+  {
+    "name": "the reading-progress upgrade runs on existing stores",
+    "file": "internal/folkweave/migrate.go",
+    "before": "if version < 4 {",
+    "after": "if false {",
+    "package": "./internal/folkweave",
+    "run": "^TestReadingProgressMigrationRollsBackAndKeepsData$"
   }
 ]

@@ -234,34 +234,43 @@ func (s *Store) Posts(ctx context.Context, viewer int64, after string, saved boo
 	}
 	query += " ORDER BY p.id DESC LIMIT ?"
 	args = append(args, PageSize+1)
+	posts, more, err := s.loadPostPage(ctx, query, args...)
+	out := PostPage{Posts: posts, Anchor: c.Anchor}
+	if more {
+		out.Next = encodeCursor(cursor{Before: out.Posts[len(out.Posts)-1].ID, Anchor: c.Anchor})
+	}
+	return out, err
+}
+
+func (s *Store) loadPostPage(ctx context.Context, query string, args ...any) ([]Post, bool, error) {
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
-		return PostPage{}, err
+		return nil, false, err
 	}
-	out := PostPage{Posts: []Post{}, Anchor: c.Anchor}
+	posts := []Post{}
 	for rows.Next() {
 		p, err := scanPost(rows)
 		if err != nil {
 			rows.Close()
-			return out, err
+			return nil, false, err
 		}
-		out.Posts = append(out.Posts, p)
+		posts = append(posts, p)
 	}
 	err = rows.Err()
 	rows.Close()
 	if err != nil {
-		return out, err
+		return nil, false, err
 	}
-	if len(out.Posts) > PageSize {
-		out.Posts = out.Posts[:PageSize]
-		out.Next = encodeCursor(cursor{Before: out.Posts[len(out.Posts)-1].ID, Anchor: c.Anchor})
+	more := len(posts) > PageSize
+	if more {
+		posts = posts[:PageSize]
 	}
-	for i := range out.Posts {
-		if err := s.loadPostPhotos(ctx, &out.Posts[i]); err != nil {
-			return out, err
+	for i := range posts {
+		if err := s.loadPostPhotos(ctx, &posts[i]); err != nil {
+			return nil, false, err
 		}
 	}
-	return out, nil
+	return posts, more, nil
 }
 func (s *Store) Post(ctx context.Context, viewer, id int64) (Post, error) {
 	p, err := scanPost(s.db.QueryRowContext(ctx, postSelect+" WHERE p.id=?", viewer, id))

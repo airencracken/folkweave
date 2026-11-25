@@ -79,12 +79,12 @@ func TestReadOnlyDemoRouteAndStorageIsolation(t *testing.T) {
 			t.Fatalf("sample photo %s: %d", path, w.Code)
 		}
 	}
-	for _, path := range []string{"/login", "/join", "/saved", "/settings", "/account/export", "/api/v1/posts", "/posts/1/edit"} {
+	for _, path := range []string{"/login", "/join", "/saved", "/catch-up", "/replies", "/settings", "/account/export", "/api/v1/posts", "/posts/1/edit"} {
 		if w := request("GET", path); w.Code != http.StatusNotFound {
 			t.Fatalf("sample exposes %s: %d", path, w.Code)
 		}
 	}
-	for _, path := range []string{"/posts", post.URL() + "/delete", post.URL() + "/save", "/login", "/join", "/logout"} {
+	for _, path := range []string{"/posts", post.URL() + "/delete", post.URL() + "/save", post.URL() + "/follow", "/catch-up", "/replies/seen", "/login", "/join", "/logout"} {
 		if w := request("POST", path); w.Code != http.StatusNotFound && w.Code != http.StatusMethodNotAllowed {
 			t.Fatalf("sample allows POST %s: %d", path, w.Code)
 		}
